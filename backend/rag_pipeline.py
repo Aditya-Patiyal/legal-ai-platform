@@ -1,16 +1,26 @@
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
-
-from ollama import Client
 
 from .embeddings import OLLAMA_HOST, query_document_chunks
 from .hybrid_retrieval import search_with_expansion, hybrid_search
 from .indian_law_kb import lookup_section, search_law_by_topic, semantic_search_laws
 
 CHAT_MODEL = "mistral"
-ollama_client = Client(host=OLLAMA_HOST)
+
+# Lazy initialization for Ollama client
+_ollama_client = None
+
+
+def get_ollama_client():
+    """Get Ollama client, initializing lazily."""
+    global _ollama_client
+    if _ollama_client is None:
+        from ollama import Client
+        _ollama_client = Client(host=OLLAMA_HOST)
+    return _ollama_client
 
 SYSTEM_PROMPT = """You are a legal document assistant helping non-lawyers understand their documents and Indian law.
 
@@ -298,7 +308,7 @@ def answer_question(document_id: int, question: str) -> dict[str, object]:
         query_type=query_type,
     )
     
-    response = ollama_client.generate(model=CHAT_MODEL, prompt=prompt)
+    response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
     answer = response.get("response", "I could not generate a response.").strip()
     
     return {
@@ -327,7 +337,7 @@ def answer_law_question(question: str) -> dict[str, Any]:
         query_type="law_only",
     )
     
-    response = ollama_client.generate(model=CHAT_MODEL, prompt=prompt)
+    response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
     answer = response.get("response", "I could not generate a response.").strip()
     
     return {
