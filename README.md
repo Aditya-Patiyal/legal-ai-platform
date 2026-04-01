@@ -45,3 +45,4 @@ chroma/
 - This platform provides AI-generated legal assistance and does not replace a licensed lawyer.
 - SMTP email integration is deferred in this MVP.
 - Hindi support is deferred in this MVP.
+# Railway deployment trigger
