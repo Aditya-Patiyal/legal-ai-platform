@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | Legal AI Platform</title>
+    <link rel="stylesheet" href="/frontend/styles.css" />
+  </head>
+  <body data-page="dashboard">
+    <div class="page-bg"></div>
+    
+    <!-- Sticky Glassy Navbar -->
+    <nav class="navbar-fixed">
+      <div class="navbar-container">
+        <a href="/" class="nav-brand">
+          <div class="nav-logo-wrapper">
+            <span class="nav-logo-icon">⚖</span>
+          </div>
+          <span class="nav-logo-text">LegalAI</span>
+        </a>
+        <div class="nav-menu">
+          <a href="/dashboard" class="nav-link nav-link-active">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Dashboard
+          </a>
+          <a href="/generator" class="nav-link">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+            Generate
+          </a>
+          <a href="/chat" class="nav-link">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Chat
+          </a>
+          <button id="logout-button" class="nav-link nav-logout">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </button>
+        </div>
+        <button class="nav-mobile-toggle" id="nav-mobile-toggle">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container page-container">
+
+      <!-- Hero Section with Ask Bar Spotlight -->
+      <section class="hero-spotlight dashboard-hero">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            Welcome back, <span data-auth-name>User</span>
+          </div>
+          <h1 class="hero-title">
+            How can I help you<br />
+            <span class="hero-title-accent">with legal matters today?</span>
+          </h1>
+          <p class="hero-description">
+            Ask any legal query, upload your documents for analysis, and get AI-powered insights — all in one place.
+          </p>
+        </div>
+
+        <!-- Central Ask Bar / Chatbot -->
+        <div class="ask-bar-section">
+          <div class="ask-bar-container glass-card-prominent chatbot-box">
+            <!-- Chat Messages Area (above input) -->
+            <div id="dashboard-chat-messages" class="chatbot-messages">
+              <div class="chatbot-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 12px;">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <p>Ask any legal question to start the conversation</p>
+              </div>
+            </div>
+            <div id="dashboard-chat-status" class="form-status"></div>
+            
+            <!-- Input Area (bottom) -->
+            <div class="chatbot-input-area">
+              <div class="ask-bar-suggestions" id="dashboard-suggestions">
+                <button type="button" class="suggestion-chip" data-query="What is Section 420 IPC?">Section 420 IPC</button>
+                <button type="button" class="suggestion-chip" data-query="How to file a consumer complaint?">Consumer complaint</button>
+                <button type="button" class="suggestion-chip" data-query="What are tenant rights in India?">Tenant rights</button>
+              </div>
+              <form id="dashboard-ask-form" class="chatbot-input-form">
+                <div class="chatbot-input-wrapper">
+                  <input 
+                    type="text" 
+                    id="dashboard-question" 
+                    class="chatbot-input" 
+                    placeholder="Ask any legal question..." 
+                  />
+                  <label class="chatbot-upload-btn">
+                    <input type="file" id="dashboard-file-upload" accept=".pdf,.docx" hidden />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                    </svg>
+                  </label>
+                  <button type="submit" class="chatbot-send-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+                <span class="upload-file-name" id="dashboard-file-name"></span>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Actions / Workflow Cards -->
+      <section class="dashboard-section">
+        <div class="section-header">
+          <h2 class="section-title">Quick Actions</h2>
+          <p class="section-subtitle">Choose a workflow to get started</p>
+        </div>
+        <div class="workflow-grid">
+        <a href="#upload-section" class="workflow-card">
+          <div class="workflow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <h3 class="workflow-title">Analyze Document</h3>
+          <p class="workflow-desc">Upload contracts and legal documents to extract clauses, assess risks, and understand key terms</p>
+          <span class="workflow-action">Upload & Analyze →</span>
+        </a>
+
+        <a href="/chat" class="workflow-card">
+          <div class="workflow-icon workflow-icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <h3 class="workflow-title">Chat with Documents</h3>
+          <p class="workflow-desc">Ask questions about your documents or Indian law and get answers with source citations</p>
+          <span class="workflow-action">Start Chatting →</span>
+        </a>
+
+        <a href="/generator" class="workflow-card">
+          <div class="workflow-icon workflow-icon-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </div>
+          <h3 class="workflow-title">Generate Documents</h3>
+          <p class="workflow-desc">Create professional legal notices, complaint letters, NDAs, rental agreements, and more</p>
+          <span class="workflow-action">Create Document →</span>
+        </a>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section id="features" class="features-section">
+        <div class="section-header">
+          <h2 class="section-title">Powerful Features</h2>
+          <p class="section-subtitle">Everything you need to understand and work with legal documents</p>
+        </div>
+        
+        <div class="features-grid-new">
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">Document Intelligence</h3>
+            <p class="feature-description-new">
+              Upload PDF and DOCX files. We parse, chunk, and create semantic embeddings locally for powerful search.
+            </p>
+          </div>
+
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper feature-icon-chat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">Legal Chat</h3>
+            <p class="feature-description-new">
+              Ask questions in plain English. Get context-grounded answers with source excerpts visible alongside.
+            </p>
+          </div>
+
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper feature-icon-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">Clause Extraction</h3>
+            <p class="feature-description-new">
+              Find termination, penalty, confidentiality, liability, and renewal clauses with risk assessment.
+            </p>
+          </div>
+
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper feature-icon-warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">Risk Analysis</h3>
+            <p class="feature-description-new">
+              Get a heuristic risk score with detailed findings about one-sided terms and hidden penalties.
+            </p>
+          </div>
+
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper feature-icon-generate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                <path d="M2 2l7.586 7.586"></path>
+                <circle cx="11" cy="11" r="2"></circle>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">Document Generator</h3>
+            <p class="feature-description-new">
+              Create legal notices, complaint letters, NDAs, and rental agreements from structured templates.
+            </p>
+          </div>
+
+          <div class="feature-card-new glass-card">
+            <div class="feature-icon-wrapper feature-icon-lock">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h3 class="feature-title-new">100% Local & Secure</h3>
+            <p class="feature-description-new">
+              All processing happens on your machine. No data leaves your computer. Complete privacy guaranteed.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Why Choose Us Section -->
+      <section class="why-section">
+        <div class="section-header">
+          <h2 class="section-title">Why Choose Legal AI?</h2>
+          <p class="section-subtitle">Built for efficiency, security, and peace of mind</p>
+        </div>
+
+        <div class="why-grid">
+          <div class="why-card glass-card">
+            <div class="why-icon-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="why-content">
+              <h3 class="why-title">Save Hours of Time</h3>
+              <p class="why-description">
+                What takes hours with manual review takes minutes with AI. Instantly extract key clauses, understand complex terms, and get answers to your legal questions without waiting for appointments.
+              </p>
+              <ul class="why-benefits">
+                <li>Instant document analysis</li>
+                <li>Quick clause extraction</li>
+                <li>24/7 availability</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="why-card glass-card">
+            <div class="why-icon-wrapper why-icon-security">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <polyline points="9 12 11 14 15 10"></polyline>
+              </svg>
+            </div>
+            <div class="why-content">
+              <h3 class="why-title">Complete Document Security</h3>
+              <p class="why-description">
+                Your sensitive legal documents never leave your computer. All AI processing happens locally using Ollama, ensuring complete privacy and confidentiality for your most sensitive information.
+              </p>
+              <ul class="why-benefits">
+                <li>100% local processing</li>
+                <li>No cloud uploads</li>
+                <li>Your data stays yours</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="why-card glass-card">
+            <div class="why-icon-wrapper why-icon-smart">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <div class="why-content">
+              <h3 class="why-title">Smart & Accurate</h3>
+              <p class="why-description">
+                Powered by advanced AI models trained on legal documents and Indian law. Get accurate, context-aware answers with references to specific sections and clauses.
+              </p>
+              <ul class="why-benefits">
+                <li>Indian law knowledge base</li>
+                <li>Context-aware responses</li>
+                <li>Source citations included</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works Section -->
+      <section class="how-section">
+        <div class="section-header">
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-subtitle">Get started in three simple steps</p>
+        </div>
+
+        <div class="steps-container">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3 class="step-title">Upload or Ask</h3>
+              <p class="step-description">
+                Upload your legal document (PDF or DOCX) or simply type your legal question in the ask bar above.
+              </p>
+            </div>
+            <div class="step-visual">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+          </div>
+
+          <div class="step-connector">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3 class="step-title">AI Analysis</h3>
+              <p class="step-description">
+                Our AI processes your document locally, extracting clauses, identifying risks, and preparing answers.
+              </p>
+            </div>
+            <div class="step-visual">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="step-connector">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3 class="step-title">Get Insights</h3>
+              <p class="step-description">
+                Receive clear explanations, risk assessments, and actionable insights — all in plain English.
+              </p>
+            </div>
+            <div class="step-visual">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upload Section -->
+      <section id="upload-section" class="dashboard-section">
+        <div class="section-header">
+          <h2 class="section-title">Upload & Analyze</h2>
+          <p class="section-subtitle">Upload your legal documents for intelligent analysis</p>
+        </div>
+        
+        <div class="dashboard-grid">
+          <div class="glass-card">
+            <div class="glass-card-header">
+              <h3 class="glass-card-title">Upload Document</h3>
+              <p class="glass-card-subtitle">Supported: PDF, DOCX (max 10MB)</p>
+            </div>
+            <form id="upload-form">
+              <div class="form-file">
+                <input class="form-file-input" id="document-file" type="file" accept=".pdf,.docx" required />
+                <label class="form-file-label" for="document-file">
+                  <svg class="form-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span class="form-file-text">Click to upload or drag and drop</span>
+                  <span class="form-file-hint">Your document will be processed locally</span>
+                </label>
+              </div>
+              <button class="btn btn-primary mt-4" type="submit" style="width: 100%;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload & Analyze
+              </button>
+              <div id="upload-status" class="form-status"></div>
+            </form>
+          </div>
+
+          <div class="glass-card">
+            <div class="glass-card-header">
+              <h3 class="glass-card-title">Quick Analysis</h3>
+              <p class="glass-card-subtitle">Run analysis on your documents</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="clause-type">Find Specific Clause</label>
+              <select class="form-select" id="clause-type">
+                <option value="termination">Termination Clause</option>
+                <option value="penalty">Penalty Clause</option>
+                <option value="payment">Payment Terms</option>
+                <option value="confidentiality">Confidentiality</option>
+                <option value="liability">Liability</option>
+                <option value="renewal">Renewal Terms</option>
+              </select>
+            </div>
+            <div class="action-buttons">
+              <button id="quick-clause-button" class="btn btn-primary" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Find Clause
+              </button>
+              <button id="quick-risk-button" class="btn btn-secondary" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Risk Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Documents Section -->
+      <section class="dashboard-section">
+        <div class="section-header">
+          <h2 class="section-title">Your Documents</h2>
+          <p class="section-subtitle">Previously uploaded files ready for analysis</p>
+        </div>
+        
+        <div class="glass-card">
+          <div id="document-list" class="doc-list"></div>
+        </div>
+      </section>
+
+      <!-- Analysis Results Section -->
+      <section class="dashboard-section">
+        <div class="section-header">
+          <h2 class="section-title">Analysis Results</h2>
+          <p class="section-subtitle">Clause extraction and risk analysis output</p>
+        </div>
+        
+        <div class="glass-card">
+          <div id="analysis-output" class="analysis-empty">
+            <svg class="analysis-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <p class="analysis-empty-title">No analysis yet</p>
+            <p class="analysis-empty-hint">Upload a document and click "Find Clause" or "Risk Analysis" to see results here</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer">
+        <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <p class="disclaimer-text">
+          This platform provides automated legal assistance and does not replace a licensed lawyer.
+        </p>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <span class="footer-logo">⚖</span>
+            <span>Legal AI Platform</span>
+          </div>
+          <p class="footer-text">Built with FastAPI, Ollama, ChromaDB & Groq</p>
+        </div>
+      </footer>
+    </div>
+    <script src="/frontend/script.js"></script>
+  </body>
+</html>

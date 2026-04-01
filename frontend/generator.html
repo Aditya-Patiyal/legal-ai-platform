@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generator | Legal AI Platform</title>
+    <link rel="stylesheet" href="/frontend/styles.css" />
+  </head>
+  <body data-page="generator">
+    <div class="page-bg"></div>
+    
+    <!-- Sticky Glassy Navbar -->
+    <nav class="navbar-fixed">
+      <div class="navbar-container">
+        <a href="/" class="nav-brand">
+          <div class="nav-logo-wrapper">
+            <span class="nav-logo-icon">⚖</span>
+          </div>
+          <span class="nav-logo-text">LegalAI</span>
+        </a>
+        <div class="nav-menu">
+          <a href="/dashboard" class="nav-link">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Dashboard
+          </a>
+          <a href="/generator" class="nav-link nav-link-active">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+            Generate
+          </a>
+          <a href="/chat" class="nav-link">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Chat
+          </a>
+          <button id="logout-button" class="nav-link nav-logout">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </button>
+        </div>
+        <button class="nav-mobile-toggle" id="nav-mobile-toggle">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container page-container">
+
+      <div class="disclaimer">
+        <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <p class="disclaimer-text">
+          This platform provides automated legal assistance and does not replace a licensed lawyer.
+        </p>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Document Generator</h1>
+        <p class="page-subtitle">Create professional legal documents with smart assistance</p>
+      </div>
+
+      <!-- Document Type Cards -->
+      <div class="doc-type-grid">
+        <button class="doc-type-card active" type="button" data-type="complaint_letter">
+          <div class="doc-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          <span class="doc-type-name">Complaint Letter</span>
+          <span class="doc-type-desc">Police FIR, consumer complaints</span>
+        </button>
+        <button class="doc-type-card" type="button" data-type="legal_notice">
+          <div class="doc-type-icon doc-type-icon-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <span class="doc-type-name">Legal Notice</span>
+          <span class="doc-type-desc">Demand action, warn consequences</span>
+        </button>
+        <button class="doc-type-card" type="button" data-type="rental_agreement">
+          <div class="doc-type-icon doc-type-icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <span class="doc-type-name">Rental Agreement</span>
+          <span class="doc-type-desc">Lease terms, property rental</span>
+        </button>
+        <button class="doc-type-card" type="button" data-type="nda">
+          <div class="doc-type-icon doc-type-icon-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <span class="doc-type-name">NDA</span>
+          <span class="doc-type-desc">Protect confidential info</span>
+        </button>
+      </div>
+
+      <div class="generator-grid">
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <h2 class="glass-card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 8px;">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              Document Details
+            </h2>
+            <p class="glass-card-subtitle">Fill in the required information</p>
+          </div>
+          <form id="generator-form">
+            <input type="hidden" id="template-type" value="complaint_letter" />
+            
+            <!-- Optional Reference Document Upload -->
+            <div class="chat-upload-section">
+              <div class="upload-divider">
+                <span>Upload reference document (optional)</span>
+              </div>
+              <div class="form-file form-file-compact">
+                <input class="form-file-input" id="generator-document-file" type="file" accept=".pdf,.docx" />
+                <label class="form-file-label" for="generator-document-file">
+                  <svg class="form-file-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span class="form-file-text-sm">Upload PDF/DOCX for reference</span>
+                </label>
+              </div>
+              <div id="generator-upload-status" class="form-status"></div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="gen-name">Your Full Name</label>
+                <input class="form-input" id="gen-name" type="text" placeholder="e.g., Rahul Sharma" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="gen-date">Date</label>
+                <input class="form-input" id="gen-date" type="date" required />
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="gen-address">Your Address</label>
+              <input class="form-input" id="gen-address" type="text" placeholder="e.g., 123 MG Road, Jaipur, Rajasthan 302001" required />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="gen-issue">
+                Describe Your Situation
+                <span class="form-hint">Include: what happened, when, where, and what action you want</span>
+              </label>
+              <textarea class="form-textarea form-textarea-lg" id="gen-issue" placeholder="Example: My mobile phone was stolen from World Trade Park mall on March 24, 2026 at around 10 AM. I was watching a movie and left my phone on the seat during interval. When I returned, it was gone. The phone is an iPhone 16, black color, 128GB. I don't have the IMEI number. There were no witnesses. I want to file a police complaint for investigation." required></textarea>
+            </div>
+            
+            <button class="btn btn-primary btn-lg" type="submit" style="width: 100%;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              Generate Document
+            </button>
+            <div id="generator-status" class="form-status"></div>
+          </form>
+        </div>
+
+        <div class="glass-card preview-card">
+          <div class="glass-card-header">
+            <h2 class="glass-card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 8px;">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Preview
+            </h2>
+            <p class="glass-card-subtitle">Review your document before downloading</p>
+          </div>
+          <div id="generator-preview" class="preview-content">
+            <div class="preview-empty">
+              <svg class="preview-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <p class="preview-empty-title">No document yet</p>
+              <p class="preview-empty-hint">Fill out the form and click "Generate Document" to see your document here</p>
+            </div>
+          </div>
+          <div id="generator-download" class="preview-actions"></div>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer">
+        <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <p class="disclaimer-text">
+          Generated documents are for reference only. Consult a legal professional before using for official purposes.
+        </p>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <span class="footer-logo">⚖</span>
+            <span>Legal AI Platform</span>
+          </div>
+          <p class="footer-text">Powered by Groq • PDF export with ReportLab</p>
+        </div>
+      </footer>
+    </div>
+    <script src="/frontend/script.js"></script>
+  </body>
+</html>

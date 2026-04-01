@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
+
+import chromadb
+from chromadb.api.models.Collection import Collection
+from ollama import Client
+
+from .database import CHROMA_DIR
+
+if TYPE_CHECKING:
+    from .document_parser import StructuredChunk
+
+EMBED_MODEL = "nomic-embed-text"
+OLLAMA_HOST = "http://127.0.0.1:11434"
+COLLECTION_NAME = "legal_documents"
+
+ollama_client = Client(host=OLLAMA_HOST)
+chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+
+
+def get_collection() -> Collection:
+    return chroma_client.get_or_create_collection(name=COLLECTION_NAME)
+
+
+def embed_text(text: str) -> list[float]:
+    response = ollama_client.embeddings(model=EMBED_MODEL, prompt=text)
+    return response["embedding"]
+
+
+def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: list[str]) -> None:
+    if not chunks:
+        return
+    collection = get_collection()
+    ids = [f"doc-{document_id}-chunk-{index}" for index in range(len(chunks))]
+    embeddings = [embed_text(chunk) for chunk in chunks]
+    metadatas: list[dict[str, Any]] = [
+        {
+            "user_id": user_id,
+            "document_id": document_id,
+            "filename": filename,
+            "chunk_index": index,
+        }
+        for index in range(len(chunks))
+    ]
+    collection.upsert(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
+
+
+def add_structured_chunks(
+    user_id: int,
+    document_id: int,
+    filename: str,
+    chunks: list["StructuredChunk"],
+) -> None:
+    """Add structured chunks with rich metadata to the vector store."""
+    if not chunks:
+        return
+    
+    collection = get_collection()
+    ids = [f"doc-{document_id}-chunk-{chunk.chunk_index}" for chunk in chunks]
+    documents = [chunk.text for chunk in chunks]
+    embeddings = [embed_text(chunk.text) for chunk in chunks]
+    
+    metadatas: list[dict[str, Any]] = []
+    for chunk in chunks:
+        meta = {
+            "user_id": user_id,
+            "document_id": document_id,
+            "filename": filename,
+            "chunk_index": chunk.chunk_index,
+            "char_start": chunk.char_start,
+            "char_end": chunk.char_end,
+        }
+        if chunk.page_number is not None:
+            meta["page_number"] = chunk.page_number
+        if chunk.section_heading:
+            meta["section_heading"] = chunk.section_heading
+        if chunk.clause_number:
+            meta["clause_number"] = chunk.clause_number
+        metadatas.append(meta)
+    
+    collection.upsert(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas)
+
+
+def query_document_chunks(document_id: int, query: str, limit: int = 4) -> list[dict[str, Any]]:
+    collection = get_collection()
+    results = collection.query(
+        query_embeddings=[embed_text(query)],
+        n_results=limit,
+        where={"document_id": document_id},
+        include=["documents", "metadatas", "distances"],
+    )
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    distances = results.get("distances", [[]])[0]
+    ids = results.get("ids", [[]])[0]
+    
+    payload: list[dict[str, Any]] = []
+    for doc_id, document, metadata, distance in zip(ids, documents, metadatas, distances):
+        payload.append(
+            {
+                "id": doc_id,
+                "text": document,
+                "metadata": metadata,
+                "distance": distance,
+            }
+        )
+    return payload
+
+
+def delete_document_chunks(document_id: int) -> None:
+    """Delete all chunks for a document from the vector store."""
+    collection = get_collection()
+    try:
+        results = collection.get(
+            where={"document_id": document_id},
+            include=[],
+        )
+        ids = results.get("ids", [])
+        if ids:
+            collection.delete(ids=ids)
+    except Exception:
+        pass
