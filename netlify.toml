@@ -22,9 +22,9 @@
   to = "/frontend/generator.html"
   status = 200
 
-# API proxy → Railway backend (UPDATE THIS URL AFTER DEPLOYING TO RAILWAY)
+# API proxy → Railway backend
 [[redirects]]
   from = "/api/*"
-  to = "https://YOUR-RAILWAY-APP.up.railway.app/api/:splat"
+  to = "https://athletic-wonder-production-ea72.up.railway.app/api/:splat"
   status = 200
   force = true
