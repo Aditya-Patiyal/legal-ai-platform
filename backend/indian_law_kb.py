@@ -7,7 +7,7 @@ from typing import Any
 import chromadb
 from chromadb.api.models.Collection import Collection
 
-from .embeddings import embed_text, chroma_client
+from .embeddings import embed_text, get_chroma_client
 
 
 INDIAN_LAW_COLLECTION = "indian_law_knowledge"
@@ -34,7 +34,7 @@ class LawSection:
 
 def get_law_collection() -> Collection:
     """Get or create the Indian law knowledge collection."""
-    return chroma_client.get_or_create_collection(name=INDIAN_LAW_COLLECTION)
+    return get_chroma_client().get_or_create_collection(name=INDIAN_LAW_COLLECTION)
 
 
 IPC_TO_BNS_MAP: dict[str, dict[str, Any]] = {
