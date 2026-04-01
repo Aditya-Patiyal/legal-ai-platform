@@ -18,8 +18,10 @@ function clearSessionToken() {
 }
 
 async function api(path, options = {}) {
+  const token = getSessionToken();
   const headers = {
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(token ? { 'X-Session-Token': token } : {}),
     ...(options.headers || {}),
   };
   
@@ -621,18 +623,6 @@ async function handleLandingChat(event) {
   const file = landingFileUpload?.files?.[0];
   
   if (!question) {
-    return;
-  }
-  
-  // Check if user is logged in
-  const user = await hydrateUser();
-  if (!user) {
-    // Show login prompt
-    showStatus(statusId, 'Please log in to ask questions', 'error');
-    setTimeout(() => {
-      window.location.href = '#auth';
-      hideStatus(statusId);
-    }, 1500);
     return;
   }
   

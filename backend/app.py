@@ -9,7 +9,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -102,10 +102,15 @@ def sanitize_user(user: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in user.items() if key != "password_hash"}
 
 
-def get_current_user(session_token: str | None = Cookie(default=None)) -> dict[str, Any]:
-    if not session_token:
+def get_current_user(
+    session_token: str | None = Cookie(default=None),
+    x_session_token: str | None = Header(default=None, alias="X-Session-Token")
+) -> dict[str, Any]:
+    # Try header first (for cross-origin requests), then cookie
+    token = x_session_token or session_token
+    if not token:
         raise HTTPException(status_code=401, detail="Authentication required")
-    user = get_user_by_session(session_token)
+    user = get_user_by_session(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
     return user
