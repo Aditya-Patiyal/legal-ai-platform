@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import os
 from typing import Any, TYPE_CHECKING
 
 import chromadb
 from chromadb.api.models.Collection import Collection
-from ollama import Client
 
 from .database import CHROMA_DIR
 
@@ -12,19 +12,37 @@ if TYPE_CHECKING:
     from .document_parser import StructuredChunk
 
 EMBED_MODEL = "nomic-embed-text"
-OLLAMA_HOST = "http://127.0.0.1:11434"
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 COLLECTION_NAME = "legal_documents"
 
-ollama_client = Client(host=OLLAMA_HOST)
-chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+# Lazy initialization - only create clients when needed
+_ollama_client = None
+_chroma_client = None
+
+
+def get_ollama_client():
+    """Get Ollama client, initializing lazily."""
+    global _ollama_client
+    if _ollama_client is None:
+        from ollama import Client
+        _ollama_client = Client(host=OLLAMA_HOST)
+    return _ollama_client
+
+
+def get_chroma_client():
+    """Get ChromaDB client, initializing lazily."""
+    global _chroma_client
+    if _chroma_client is None:
+        _chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    return _chroma_client
 
 
 def get_collection() -> Collection:
-    return chroma_client.get_or_create_collection(name=COLLECTION_NAME)
+    return get_chroma_client().get_or_create_collection(name=COLLECTION_NAME)
 
 
 def embed_text(text: str) -> list[float]:
-    response = ollama_client.embeddings(model=EMBED_MODEL, prompt=text)
+    response = get_ollama_client().embeddings(model=EMBED_MODEL, prompt=text)
     return response["embedding"]
 
 
