@@ -121,6 +121,12 @@ def startup_event() -> None:
     init_db()
 
 
+@app.get("/health")
+def health_check() -> dict[str, str]:
+    """Simple health check endpoint that doesn't require any dependencies."""
+    return {"status": "ok", "message": "Server is running"}
+
+
 @app.get("/")
 def root() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
