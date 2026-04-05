@@ -139,7 +139,10 @@ def get_law_context(question: str) -> tuple[list[dict[str, Any]], list[dict[str,
     
     topic_results = search_law_by_topic(question, limit=3)
     
-    semantic_results = semantic_search_laws(question, limit=3)
+    try:
+        semantic_results = semantic_search_laws(question, limit=3)
+    except Exception:
+        semantic_results = []
     
     combined_semantic = []
     seen_sections = {(s.get("act_short", ""), s.get("section", "")) for s in section_lookups}
@@ -282,6 +285,75 @@ Provide a comprehensive answer that:
 Answer:"""
 
 
+def build_law_fallback_answer(
+    question: str,
+    section_lookups: list[dict[str, Any]],
+    semantic_results: list[dict[str, Any]],
+) -> str:
+    parts: list[str] = []
+
+    if section_lookups:
+        primary = section_lookups[0]
+        parts.append(
+            f"Based on the legal references available, the closest exact match is Section {primary.get('section')} of {primary.get('act')} - {primary.get('title')}."
+        )
+        if primary.get("description"):
+            parts.append(primary["description"])
+        if primary.get("punishment"):
+            parts.append(f"Punishment/Penalty: {primary['punishment']}.")
+        if primary.get("new_law"):
+            new_law = primary["new_law"]
+            parts.append(
+                f"New law equivalent: Section {new_law.get('section')} of {new_law.get('act')}."
+            )
+        if primary.get("old_law"):
+            old_law = primary["old_law"]
+            parts.append(
+                f"Old law equivalent: Section {old_law.get('section')} of {old_law.get('act')}."
+            )
+    elif semantic_results:
+        primary = semantic_results[0]
+        title = primary.get("title")
+        act = primary.get("act")
+        section = primary.get("section")
+        label = f"Section {section} of {act}" if act and section else title or "the closest available legal reference"
+        parts.append(f"Based on the legal references available, the closest match is {label}.")
+        if title and label != title:
+            parts.append(f"Title: {title}.")
+        if primary.get("description"):
+            parts.append(primary["description"])
+        elif primary.get("text"):
+            parts.append(primary["text"])
+    else:
+        parts.append(
+            f"I couldn't find a specific Indian law section matching your question: \"{question}\"."
+        )
+        parts.append(
+            "Try asking with a section number, Act name, or a more specific legal issue so I can match it against the built-in legal knowledge base."
+        )
+
+    related_references = semantic_results[:3]
+    if related_references:
+        related_lines = []
+        for ref in related_references:
+            act = ref.get("act") or "Unknown Act"
+            section = ref.get("section") or "Unknown Section"
+            title = ref.get("title")
+            description = ref.get("description") or ref.get("text")
+            line = f"- Section {section} of {act}"
+            if title:
+                line += f": {title}"
+            if description:
+                line += f" — {description}"
+            related_lines.append(line)
+        parts.append("Related legal references:\n" + "\n".join(related_lines))
+
+    parts.append(
+        "This answer is based on the built-in legal knowledge base available in the deployed app and is not legal advice from a licensed lawyer."
+    )
+    return "\n\n".join(parts)
+
+
 def answer_question(document_id: int, question: str) -> dict[str, object]:
     """Answer a question using hybrid retrieval and Indian law knowledge."""
     
@@ -308,8 +380,16 @@ def answer_question(document_id: int, question: str) -> dict[str, object]:
         query_type=query_type,
     )
     
-    response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
-    answer = response.get("response", "I could not generate a response.").strip()
+    try:
+        response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
+        answer = response.get("response", "I could not generate a response.").strip()
+    except Exception:
+        if query_type in ["law_only", "document_plus_law"] and (section_lookups or semantic_law_results):
+            answer = build_law_fallback_answer(question, section_lookups, semantic_law_results)
+        elif doc_sources:
+            answer = "I couldn't generate a full AI response right now, but I did find relevant excerpts in your uploaded document. Please try again in a moment or ask a more specific question."
+        else:
+            answer = "I couldn't generate a response right now. Please try again in a moment."
     
     return {
         "answer": answer,
@@ -337,8 +417,11 @@ def answer_law_question(question: str) -> dict[str, Any]:
         query_type="law_only",
     )
     
-    response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
-    answer = response.get("response", "I could not generate a response.").strip()
+    try:
+        response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
+        answer = response.get("response", "I could not generate a response.").strip()
+    except Exception:
+        answer = build_law_fallback_answer(question, section_lookups, semantic_results)
     
     return {
         "answer": answer,
