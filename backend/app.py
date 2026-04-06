@@ -33,7 +33,7 @@ from backend.embeddings import add_document_chunks, add_structured_chunks
 from backend.indian_law_kb import lookup_section, search_law_by_topic, semantic_search_laws, index_law_knowledge
 from backend.rag_pipeline import answer_law_question
 from backend.generator import build_pdf, render_template
-from backend.ai_generator import smart_generate, classify_intent
+from backend.ai_generator import smart_generate, classify_intent, get_groq_api_key, get_groq_client
 from backend.rag_pipeline import answer_question
 from backend.risk_engine import analyze_document
 
@@ -125,6 +125,18 @@ def startup_event() -> None:
 def health_check() -> dict[str, str]:
     """Simple health check endpoint that doesn't require any dependencies."""
     return {"status": "ok", "message": "Server is running"}
+
+
+@app.get("/api/debug/groq-status")
+def groq_status() -> dict[str, Any]:
+    groq_api_key = get_groq_api_key()
+    _, groq_error = get_groq_client()
+    return {
+        "has_groq_api_key": bool(groq_api_key),
+        "groq_api_key_length": len(groq_api_key),
+        "groq_client_ready": groq_error is None,
+        "groq_error": groq_error,
+    }
 
 
 @app.get("/")

@@ -5,19 +5,24 @@ import json
 import re
 from typing import Any
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-def get_groq_client():
+def get_groq_api_key() -> str:
+    return os.getenv("GROQ_API_KEY", "").strip()
+
+def get_groq_client() -> tuple[Any | None, str | None]:
     """Lazy initialization of Groq client."""
-    if not GROQ_API_KEY or GROQ_API_KEY == "your_groq_api_key_here":
-        return None
+    groq_api_key = get_groq_api_key()
+    if not groq_api_key or groq_api_key == "your_groq_api_key_here":
+        return None, "Groq API key not configured. Please set GROQ_API_KEY environment variable."
     try:
         from groq import Groq
-        return Groq(api_key=GROQ_API_KEY)
     except Exception as e:
-        print(f"Failed to initialize Groq client: {e}")
-        return None
+        return None, f"Failed to import Groq SDK: {str(e)}"
+    try:
+        return Groq(api_key=groq_api_key), None
+    except Exception as e:
+        return None, f"Failed to initialize Groq client: {str(e)}"
 
 DOCUMENT_TYPES = {
     "legal_notice": {
@@ -180,7 +185,7 @@ DOCUMENT_PROMPTS = {
 
 def classify_intent(selected_type: str, description: str) -> dict[str, Any]:
     """Classify user's intent and validate against selected document type."""
-    groq_client = get_groq_client()
+    groq_client, groq_error = get_groq_client()
     if not groq_client:
         return {
             "detected_intent": selected_type,
@@ -190,7 +195,7 @@ def classify_intent(selected_type: str, description: str) -> dict[str, Any]:
             "suggested_type": None,
             "missing_info": [],
             "can_proceed": True,
-            "message_to_user": None,
+            "message_to_user": groq_error,
         }
     
     prompt = CLASSIFICATION_PROMPT.format(
@@ -234,11 +239,11 @@ def generate_document_content(
     issue_description: str,
 ) -> dict[str, Any]:
     """Generate professional legal document content using AI."""
-    groq_client = get_groq_client()
+    groq_client, groq_error = get_groq_client()
     if not groq_client:
         return {
             "success": False,
-            "error": "Groq API key not configured. Please set GROQ_API_KEY environment variable.",
+            "error": groq_error or "Failed to initialize Groq client.",
             "content": None,
         }
     
