@@ -8,10 +8,13 @@ from .embeddings import OLLAMA_HOST, query_document_chunks
 from .hybrid_retrieval import search_with_expansion, hybrid_search
 from .indian_law_kb import lookup_section, search_law_by_topic, semantic_search_laws
 
-CHAT_MODEL = "mistral"
+GROQ_CHAT_MODEL = "llama-3.3-70b-versatile"
+OLLAMA_CHAT_MODEL = "mistral"
 
-# Lazy initialization for Ollama client
+# Lazy initialization for LLM clients
 _ollama_client = None
+_groq_client: object = None
+_groq_init_attempted = False
 
 
 def get_ollama_client():
@@ -21,6 +24,38 @@ def get_ollama_client():
         from ollama import Client
         _ollama_client = Client(host=OLLAMA_HOST)
     return _ollama_client
+
+
+def get_groq_client():
+    """Get Groq client when GROQ_API_KEY is set, else return None."""
+    global _groq_client, _groq_init_attempted
+    if _groq_init_attempted:
+        return _groq_client
+    _groq_init_attempted = True
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key or api_key == "your_groq_api_key_here":
+        return None
+    try:
+        from groq import Groq
+        _groq_client = Groq(api_key=api_key)
+    except Exception:
+        _groq_client = None
+    return _groq_client
+
+
+def generate_llm_response(prompt: str) -> str:
+    """Generate a response using Groq if available, otherwise fall back to Ollama."""
+    groq = get_groq_client()
+    if groq:
+        response = groq.chat.completions.create(
+            model=GROQ_CHAT_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=2000,
+        )
+        return response.choices[0].message.content.strip()
+    response = get_ollama_client().generate(model=OLLAMA_CHAT_MODEL, prompt=prompt)
+    return response.get("response", "I could not generate a response.").strip()
 
 SYSTEM_PROMPT = """You are a legal document assistant helping non-lawyers understand their documents and Indian law.
 
@@ -381,8 +416,7 @@ def answer_question(document_id: int, question: str) -> dict[str, object]:
     )
     
     try:
-        response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
-        answer = response.get("response", "I could not generate a response.").strip()
+        answer = generate_llm_response(prompt)
     except Exception:
         if query_type in ["law_only", "document_plus_law"] and (section_lookups or semantic_law_results):
             answer = build_law_fallback_answer(question, section_lookups, semantic_law_results)
@@ -418,8 +452,7 @@ def answer_law_question(question: str) -> dict[str, Any]:
     )
     
     try:
-        response = get_ollama_client().generate(model=CHAT_MODEL, prompt=prompt)
-        answer = response.get("response", "I could not generate a response.").strip()
+        answer = generate_llm_response(prompt)
     except Exception:
         answer = build_law_fallback_answer(question, section_lookups, semantic_results)
     

@@ -11,9 +11,12 @@ from .database import CHROMA_DIR
 if TYPE_CHECKING:
     from .document_parser import StructuredChunk
 
-EMBED_MODEL = "nomic-embed-text"
+OLLAMA_EMBED_MODEL = "nomic-embed-text"
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 COLLECTION_NAME = "legal_documents"
+
+HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+HF_EMBED_URL = f"https://api-inference.huggingface.co/models/{HF_EMBED_MODEL}"
 
 # Lazy initialization - only create clients when needed
 _ollama_client = None
@@ -41,9 +44,43 @@ def get_collection() -> Collection:
     return get_chroma_client().get_or_create_collection(name=COLLECTION_NAME)
 
 
-def embed_text(text: str) -> list[float]:
-    response = get_ollama_client().embeddings(model=EMBED_MODEL, prompt=text)
+def _embed_text_ollama(text: str) -> list[float]:
+    response = get_ollama_client().embeddings(model=OLLAMA_EMBED_MODEL, prompt=text)
     return response["embedding"]
+
+
+def _embed_batch_hf(texts: list[str], api_key: str) -> list[list[float]]:
+    """Call HuggingFace Inference API to embed a batch of texts."""
+    import httpx
+    response = httpx.post(
+        HF_EMBED_URL,
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={"inputs": texts, "options": {"wait_for_model": True}},
+        timeout=60.0,
+    )
+    response.raise_for_status()
+    result = response.json()
+    if isinstance(result, list) and result and isinstance(result[0], list):
+        return result
+    return [[v for v in result]]
+
+
+def embed_text(text: str) -> list[float]:
+    """Embed a single text. Uses HuggingFace API when HUGGINGFACE_API_KEY is set, else Ollama."""
+    hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip()
+    if hf_key:
+        return _embed_batch_hf([text], hf_key)[0]
+    return _embed_text_ollama(text)
+
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Embed multiple texts efficiently. Uses batch HF API call or sequential Ollama."""
+    if not texts:
+        return []
+    hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip()
+    if hf_key:
+        return _embed_batch_hf(texts, hf_key)
+    return [_embed_text_ollama(t) for t in texts]
 
 
 def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: list[str]) -> None:
@@ -51,7 +88,7 @@ def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: l
         return
     collection = get_collection()
     ids = [f"doc-{document_id}-chunk-{index}" for index in range(len(chunks))]
-    embeddings = [embed_text(chunk) for chunk in chunks]
+    embeddings = embed_texts(chunks)
     metadatas: list[dict[str, Any]] = [
         {
             "user_id": user_id,
@@ -77,7 +114,7 @@ def add_structured_chunks(
     collection = get_collection()
     ids = [f"doc-{document_id}-chunk-{chunk.chunk_index}" for chunk in chunks]
     documents = [chunk.text for chunk in chunks]
-    embeddings = [embed_text(chunk.text) for chunk in chunks]
+    embeddings = embed_texts(documents)
     
     metadatas: list[dict[str, Any]] = []
     for chunk in chunks:

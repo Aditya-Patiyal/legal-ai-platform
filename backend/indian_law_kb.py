@@ -7,7 +7,7 @@ from typing import Any
 import chromadb
 from chromadb.api.models.Collection import Collection
 
-from .embeddings import embed_text, get_chroma_client
+from .embeddings import embed_text, embed_texts, get_chroma_client
 
 
 INDIAN_LAW_COLLECTION = "indian_law_knowledge"
@@ -675,7 +675,7 @@ def index_law_knowledge() -> int:
     
     ids = [entry["id"] for entry in entries]
     documents = [entry["text"] for entry in entries]
-    embeddings = [embed_text(doc) for doc in documents]
+    embeddings = embed_texts(documents)
     metadatas = [
         {
             "act": entry["act"],
