@@ -104,16 +104,25 @@ def detect_query_type(question: str) -> str:
     question_lower = question.lower()
     
     law_indicators = [
-        r"\bipc\b", r"\bbns\b", r"\bcrpc\b", r"\bbnss\b",
+        r"\bipc\b", r"\bbns\b", r"\bcrpc\b", r"\bbnss\b", r"\bbsa\b",
         r"\bsection\s*\d+", r"\bsec\.?\s*\d+",
         r"\bindian\s*penal\s*code\b", r"\bcriminal\s*procedure\b",
         r"\bwhat\s*is\s*(?:the\s*)?(?:punishment|penalty)\b",
         r"\bwhich\s*(?:section|law|act)\b",
         r"\bunder\s*which\s*(?:section|law)\b",
-        r"\bconstitution\b", r"\bfundamental\s*right",
+        r"\bconstitution\b", r"\bfundamental\s*right", r"\barticle\s*\d+",
         r"\bconsumer\s*protection\b", r"\bcheque\s*bounce\b",
         r"\b138\s*ni\s*act\b", r"\bnegotiable\s*instrument",
         r"\bit\s*act\b", r"\bcyber\s*crime\b",
+        r"\brti\b", r"\bright\s*to\s*information\b",
+        r"\bpocso\b", r"\bchild\s*(?:sexual|abuse|protection)\b",
+        r"\bdomestic\s*violence\b", r"\bpwdva\b",
+        r"\btransfer\s*of\s*property\b", r"\btpa\b",
+        r"\bindustrial\s*disputes?\b", r"\bretrenchment\b",
+        r"\bmaintenance\s*(?:wife|children|parents)\b",
+        r"\bstalking\b", r"\bvoyeurism\b", r"\bforgery\b",
+        r"\bcriminal\s*conspiracy\b", r"\bdacoity\b",
+        r"\bevidence\s*act\b", r"\bsakshya\b",
     ]
     
     doc_indicators = [

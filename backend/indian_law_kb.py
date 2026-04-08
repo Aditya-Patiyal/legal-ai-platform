@@ -190,6 +190,150 @@ IPC_TO_BNS_MAP: dict[str, dict[str, Any]] = {
         "punishment": "Simple imprisonment up to 3 years, and fine",
         "keywords": ["insult", "modesty", "woman", "gesture", "eve teasing"],
     },
+    "34": {
+        "bns_section": "3(5)",
+        "title": "Acts Done by Several Persons in Furtherance of Common Intention",
+        "description": "When a criminal act is done by several persons in furtherance of the common intention of all, each of such persons is liable for that act in the same manner as if it were done by him alone.",
+        "category": "general_principles",
+        "punishment": "Varies based on the act committed",
+        "keywords": ["common intention", "joint liability", "several persons", "shared intention"],
+    },
+    "107": {
+        "bns_section": "45",
+        "title": "Abetment of a Thing",
+        "description": "A person abets the doing of a thing who instigates any person to do that thing; or engages with one or more other persons in any conspiracy; or intentionally aids the commission of an act.",
+        "category": "abetment",
+        "punishment": "Same as the principal offence abetted",
+        "keywords": ["abetment", "instigation", "conspiracy", "aid", "facilitation"],
+    },
+    "120B": {
+        "bns_section": "61",
+        "title": "Punishment for Criminal Conspiracy",
+        "description": "Whoever is a party to a criminal conspiracy to commit an offence punishable with death or imprisonment for life shall be punished in the same manner as if he had abetted such offence.",
+        "category": "conspiracy",
+        "punishment": "Same as abetting the offence conspired; or imprisonment up to 6 months if minor offence",
+        "keywords": ["criminal conspiracy", "conspiracy", "120B", "joint plan"],
+    },
+    "323": {
+        "bns_section": "115",
+        "title": "Voluntarily Causing Hurt",
+        "description": "Whoever voluntarily causes hurt shall be punished with imprisonment of either description up to 1 year, or with fine up to 1000 rupees, or with both.",
+        "category": "offenses_against_body",
+        "punishment": "Imprisonment up to 1 year, or fine up to Rs. 1000, or both",
+        "keywords": ["hurt", "assault", "bodily harm", "injury", "beat"],
+    },
+    "325": {
+        "bns_section": "116",
+        "title": "Voluntarily Causing Grievous Hurt",
+        "description": "Whoever voluntarily causes grievous hurt shall be punished with imprisonment up to 7 years, and fine.",
+        "category": "offenses_against_body",
+        "punishment": "Imprisonment up to 7 years, and fine",
+        "keywords": ["grievous hurt", "serious injury", "broken bone", "permanent disability"],
+    },
+    "326": {
+        "bns_section": "117",
+        "title": "Voluntarily Causing Grievous Hurt by Dangerous Weapons or Means",
+        "description": "Whoever causes grievous hurt by means of any instrument for shooting, stabbing or cutting, or any instrument which is likely to cause death, or by fire, heated substance, poison, explosive, or acid.",
+        "category": "offenses_against_body",
+        "punishment": "Imprisonment for life, or imprisonment up to 10 years, and fine",
+        "keywords": ["grievous hurt", "weapon", "acid attack", "knife", "gun", "dangerous weapon"],
+    },
+    "354A": {
+        "bns_section": "75",
+        "title": "Sexual Harassment",
+        "description": "A man committing physical contact and advances involving unwelcome and explicit sexual overtures; demanding or requesting for sexual favours; showing pornography against the will of a woman; making sexually coloured remarks.",
+        "category": "offenses_against_women",
+        "punishment": "Imprisonment up to 3 years, or fine, or both; up to 1 year for verbal remarks",
+        "keywords": ["sexual harassment", "workplace harassment", "unwelcome advances", "POSH", "woman"],
+    },
+    "354C": {
+        "bns_section": "77",
+        "title": "Voyeurism",
+        "description": "Any man who watches or captures the image of a woman engaging in a private act in circumstances where she would usually have the expectation of not being observed.",
+        "category": "offenses_against_women",
+        "punishment": "First conviction: 1 to 3 years and fine; subsequent: 3 to 7 years and fine",
+        "keywords": ["voyeurism", "privacy", "spying", "hidden camera", "woman"],
+    },
+    "354D": {
+        "bns_section": "78",
+        "title": "Stalking",
+        "description": "Any man who follows a woman and contacts or attempts to contact such woman to foster personal interaction repeatedly despite a clear indication of disinterest by the woman.",
+        "category": "offenses_against_women",
+        "punishment": "First conviction: up to 3 years and fine; subsequent: up to 5 years and fine",
+        "keywords": ["stalking", "following", "harassment", "cyberstalking", "repeated contact"],
+    },
+    "375": {
+        "bns_section": "63",
+        "title": "Rape (Definition)",
+        "description": "A man is said to commit rape if he penetrates or manipulates any part of a woman's body without her consent or against her will, or when consent is obtained by force, threat, fraud, intoxication, or misconception.",
+        "category": "offenses_against_women",
+        "punishment": "As per Section 376 — rigorous imprisonment not less than 10 years",
+        "keywords": ["rape", "sexual assault", "consent", "definition", "sexual violence"],
+    },
+    "376D": {
+        "bns_section": "70",
+        "title": "Gang Rape",
+        "description": "Where a woman is raped by one or more persons constituting a group or acting in furtherance of a common intention, each person shall be deemed to have committed the offence of rape.",
+        "category": "offenses_against_women",
+        "punishment": "Rigorous imprisonment not less than 20 years, may extend to life, and fine",
+        "keywords": ["gang rape", "group", "common intention", "multiple perpetrators"],
+    },
+    "395": {
+        "bns_section": "310",
+        "title": "Dacoity",
+        "description": "When five or more persons conjointly commit or attempt to commit a robbery, or where the whole number of persons conjointly committing or attempting to commit a robbery and aiding such commission is five or more.",
+        "category": "offenses_against_property",
+        "punishment": "Imprisonment for life, or rigorous imprisonment up to 10 years, and fine",
+        "keywords": ["dacoity", "robbery", "five persons", "gang robbery", "armed robbery"],
+    },
+    "409": {
+        "bns_section": "316",
+        "title": "Criminal Breach of Trust by Public Servant or Banker",
+        "description": "Whoever, being in any manner entrusted with property in his capacity as a public servant, banker, merchant, broker, attorney or agent, commits criminal breach of trust in respect of that property.",
+        "category": "offenses_against_property",
+        "punishment": "Imprisonment for life, or imprisonment up to 10 years, and fine",
+        "keywords": ["criminal breach of trust", "public servant", "banker", "misappropriation", "embezzlement"],
+    },
+    "411": {
+        "bns_section": "317",
+        "title": "Dishonestly Receiving Stolen Property",
+        "description": "Whoever dishonestly receives or retains any stolen property, knowing or having reason to believe the same to be stolen property, shall be punished.",
+        "category": "offenses_against_property",
+        "punishment": "Imprisonment up to 3 years, or fine, or both",
+        "keywords": ["stolen property", "receiving stolen", "dishonestly", "handler"],
+    },
+    "463": {
+        "bns_section": "334",
+        "title": "Forgery",
+        "description": "Whoever makes any false document or false electronic record or part of a document with intent to cause damage or injury to the public or to any person, or to support any claim or title, or to cause any person to part with property.",
+        "category": "forgery",
+        "punishment": "As per specific forgery sections",
+        "keywords": ["forgery", "false document", "fake", "fraud", "fabrication"],
+    },
+    "467": {
+        "bns_section": "338",
+        "title": "Forgery of Valuable Security or Will",
+        "description": "Whoever forges a document which purports to be a valuable security, or a will, or an authority to adopt a son, or which purports to give authority to any person to make or transfer any valuable security.",
+        "category": "forgery",
+        "punishment": "Imprisonment for life, or imprisonment up to 10 years, and fine",
+        "keywords": ["forgery", "valuable security", "will", "bond", "fake will"],
+    },
+    "468": {
+        "bns_section": "339",
+        "title": "Forgery for Purpose of Cheating",
+        "description": "Whoever commits forgery, intending that the document or electronic record forged shall be used for the purpose of cheating, shall be punished.",
+        "category": "forgery",
+        "punishment": "Imprisonment up to 7 years, and fine",
+        "keywords": ["forgery", "cheating", "fraud", "fake document for cheating"],
+    },
+    "471": {
+        "bns_section": "341",
+        "title": "Using as Genuine a Forged Document",
+        "description": "Whoever fraudulently or dishonestly uses as genuine, any document or electronic record which he knows or has reason to believe to be a forged document or electronic record.",
+        "category": "forgery",
+        "punishment": "Same as for forgery of that document",
+        "keywords": ["forged document", "using fake document", "fraudulent use", "counterfeit"],
+    },
 }
 
 CRPC_TO_BNSS_MAP: dict[str, dict[str, Any]] = {
@@ -312,6 +456,27 @@ CRPC_TO_BNSS_MAP: dict[str, dict[str, Any]] = {
         "category": "high_court",
         "keywords": ["inherent powers", "high court", "quashing", "482"],
     },
+    "125": {
+        "bnss_section": "144",
+        "title": "Order for Maintenance of Wives, Children and Parents",
+        "description": "If any person having sufficient means neglects or refuses to maintain his wife, his legitimate or illegitimate minor child, or his father or mother unable to maintain themselves, a Magistrate may order monthly maintenance.",
+        "category": "maintenance",
+        "keywords": ["maintenance", "wife", "children", "parents", "alimony", "monthly allowance", "neglect"],
+    },
+    "144": {
+        "bnss_section": "163",
+        "title": "Power to Issue Orders in Urgent Cases of Nuisance or Apprehended Danger",
+        "description": "A District Magistrate or Sub-divisional Magistrate may by a written order direct any person to abstain from a certain act or to take certain order, in urgent cases of nuisance or apprehended danger to public peace.",
+        "category": "public_order",
+        "keywords": ["section 144", "prohibitory order", "unlawful assembly", "curfew", "public peace", "nuisance"],
+    },
+    "145": {
+        "bnss_section": "164",
+        "title": "Procedure Where Dispute Concerning Land is Likely to Cause Breach of Peace",
+        "description": "Whenever a Magistrate is satisfied that a dispute likely to cause a breach of the peace exists concerning any land or water or the boundaries thereof, he shall make an order requiring the parties to attend.",
+        "category": "civil_dispute",
+        "keywords": ["land dispute", "possession", "breach of peace", "property dispute", "boundary"],
+    },
 }
 
 OTHER_IMPORTANT_LAWS: list[dict[str, Any]] = [
@@ -368,11 +533,84 @@ OTHER_IMPORTANT_LAWS: list[dict[str, Any]] = [
         "act_short": "COI",
         "sections": {
             "14": {"title": "Equality Before Law", "description": "The State shall not deny to any person equality before the law or the equal protection of the laws within the territory of India.", "keywords": ["equality", "law", "discrimination", "fundamental right"]},
+            "15": {"title": "Prohibition of Discrimination", "description": "The State shall not discriminate against any citizen on grounds only of religion, race, caste, sex, place of birth or any of them.", "keywords": ["discrimination", "religion", "caste", "sex", "fundamental right"]},
             "19": {"title": "Protection of Certain Rights", "description": "All citizens shall have the right to freedom of speech and expression, to assemble peaceably, to form associations, to move freely, to reside and settle, and to practice any profession.", "keywords": ["freedom", "speech", "expression", "assembly", "movement"]},
-            "21": {"title": "Protection of Life and Personal Liberty", "description": "No person shall be deprived of his life or personal liberty except according to procedure established by law.", "keywords": ["life", "liberty", "due process", "fundamental right"]},
-            "22": {"title": "Protection Against Arrest and Detention", "description": "No person who is arrested shall be detained in custody without being informed of the grounds for such arrest.", "keywords": ["arrest", "detention", "grounds", "legal aid"]},
-            "32": {"title": "Remedies for Enforcement of Fundamental Rights", "description": "The right to move the Supreme Court for enforcement of fundamental rights is guaranteed.", "keywords": ["supreme court", "writ", "fundamental rights", "enforcement"]},
+            "20": {"title": "Protection in Respect of Conviction for Offences", "description": "No person shall be convicted of any offence except for violation of a law in force at the time of the commission of the act charged as an offence.", "keywords": ["double jeopardy", "self-incrimination", "retrospective law", "conviction"]},
+            "21": {"title": "Protection of Life and Personal Liberty", "description": "No person shall be deprived of his life or personal liberty except according to procedure established by law.", "keywords": ["life", "liberty", "due process", "fundamental right", "article 21"]},
+            "21A": {"title": "Right to Education", "description": "The State shall provide free and compulsory education to all children of the age of 6 to 14 years in such manner as the State may determine.", "keywords": ["right to education", "children", "free education", "RTE"]},
+            "22": {"title": "Protection Against Arrest and Detention", "description": "No person who is arrested shall be detained in custody without being informed of the grounds for such arrest. Every person detained has the right to consult and be defended by a legal practitioner.", "keywords": ["arrest", "detention", "grounds", "legal aid", "lawyer"]},
+            "32": {"title": "Remedies for Enforcement of Fundamental Rights", "description": "The right to move the Supreme Court for enforcement of fundamental rights is guaranteed. The Supreme Court shall have power to issue writs including habeas corpus, mandamus, prohibition, quo warranto and certiorari.", "keywords": ["supreme court", "writ", "fundamental rights", "enforcement", "habeas corpus"]},
+            "39A": {"title": "Equal Justice and Free Legal Aid", "description": "The State shall secure that the operation of the legal system promotes justice on a basis of equal opportunity, and shall provide free legal aid, by suitable legislation or schemes, to ensure that opportunities for securing justice are not denied to any citizen.", "keywords": ["free legal aid", "equal justice", "legal help", "poor"]},
             "226": {"title": "Power of High Courts to Issue Writs", "description": "Every High Court shall have power to issue writs for enforcement of fundamental rights and for any other purpose.", "keywords": ["high court", "writ", "habeas corpus", "mandamus", "certiorari"]},
+        },
+    },
+    {
+        "act_name": "Bharatiya Sakshya Adhiniyam, 2023",
+        "act_short": "BSA",
+        "sections": {
+            "2(1)(f)": {"title": "Evidence Defined", "description": "Evidence means and includes all statements which the Court permits or requires to be made before it by witnesses, and all documents including electronic or digital records produced for the inspection of the Court.", "keywords": ["evidence", "definition", "witness", "document", "electronic record"]},
+            "16": {"title": "Admission", "description": "An admission is a statement, oral or documentary or contained in electronic form, which suggests any inference as to any fact in issue or relevant fact.", "keywords": ["admission", "confession", "statement", "acknowledgment"]},
+            "22": {"title": "Confession Caused by Inducement, Threat or Promise", "description": "A confession made by an accused person is irrelevant in a criminal proceeding if the making of the confession appears to have been caused by any inducement, threat or promise.", "keywords": ["confession", "inducement", "threat", "promise", "involuntary"]},
+            "23": {"title": "Confession to Police Officer", "description": "No confession made to a police officer shall be proved as against a person accused of any offence.", "keywords": ["confession", "police officer", "inadmissible", "custodial confession"]},
+            "57": {"title": "Admissibility of Electronic Records", "description": "Any information contained in an electronic record which is printed on paper, stored, recorded or copied in optical or magnetic media produced by a computer shall be deemed to be a document and admissible if conditions are fulfilled.", "keywords": ["electronic evidence", "digital evidence", "cyber evidence", "admissibility", "65B"]},
+            "116": {"title": "Burden of Proof", "description": "Whoever desires any Court to give judgment as to any legal right or liability dependent on the existence of facts which he asserts, must prove that those facts exist.", "keywords": ["burden of proof", "onus", "prove", "prosecution", "accusation"]},
+            "118": {"title": "Presumption of Innocence", "description": "The burden of proving the guilt of the accused lies on the prosecution. Every person is presumed innocent unless proven guilty beyond reasonable doubt.", "keywords": ["presumption of innocence", "reasonable doubt", "burden on prosecution", "innocent"]},
+        },
+    },
+    {
+        "act_name": "Transfer of Property Act, 1882",
+        "act_short": "TPA",
+        "sections": {
+            "5": {"title": "Transfer of Property Defined", "description": "In the following sections 'transfer of property' means an act by which a living person conveys property, in present or in future, to one or more other living persons, or to himself, or to himself and one or more other living persons.", "keywords": ["transfer", "property", "conveyance", "living person"]},
+            "54": {"title": "Sale Defined", "description": "Sale is a transfer of ownership in exchange for a price paid or promised or part-paid and part-promised. Sale deed must be registered for immovable property above Rs. 100.", "keywords": ["sale", "property sale", "sale deed", "ownership", "purchase"]},
+            "58": {"title": "Mortgage Defined", "description": "A mortgage is the transfer of an interest in specific immovable property for the purpose of securing the payment of money advanced or to be advanced by way of loan.", "keywords": ["mortgage", "home loan", "property loan", "security", "bank loan"]},
+            "105": {"title": "Lease Defined", "description": "A lease of immovable property is a transfer of a right to enjoy such property, made for a certain time, express or implied, or in perpetuity, in consideration of a price paid or promised.", "keywords": ["lease", "rent", "tenancy", "landlord", "tenant", "rental agreement"]},
+            "108": {"title": "Rights and Liabilities of Lessor and Lessee", "description": "The lessor is bound to disclose material defects. The lessee must pay rent, maintain property, and not use it for purposes other than intended.", "keywords": ["landlord rights", "tenant rights", "lessor", "lessee", "duties"]},
+            "122": {"title": "Gift Defined", "description": "Gift is the transfer of certain existing movable or immovable property made voluntarily and without consideration, by one person, called the donor, to another, called the donee.", "keywords": ["gift", "donation", "gifted property", "will", "donor", "donee"]},
+        },
+    },
+    {
+        "act_name": "Protection of Children from Sexual Offences Act, 2012",
+        "act_short": "POCSO",
+        "sections": {
+            "3": {"title": "Penetrative Sexual Assault", "description": "A person is said to commit 'penetrative sexual assault' if he penetrates his penis or any object or any part of the body into the vagina, mouth, urethra or anus of a child.", "keywords": ["POCSO", "child abuse", "penetrative assault", "sexual offence child"]},
+            "7": {"title": "Sexual Assault", "description": "Whoever, with sexual intent touches the vagina, penis, anus or breast of the child or makes the child touch the vagina, penis, anus or breast of such person or any other person.", "keywords": ["POCSO", "child sexual assault", "touching", "molestation child"]},
+            "11": {"title": "Sexual Harassment of a Child", "description": "A person is said to commit sexual harassment upon a child when such person makes a child exhibit his body or any part of his body so as it is seen by such person or any other person.", "keywords": ["POCSO", "child harassment", "sexual harassment minor", "exhibitionism"]},
+            "19": {"title": "Reporting of Offences", "description": "Any person, who has apprehension that an offence under this Act is likely to be committed or has knowledge that such an offence has been committed, shall provide such information to the Special Juvenile Police Unit.", "keywords": ["POCSO", "reporting obligation", "mandatory reporting", "child protection"]},
+            "28": {"title": "Special Court", "description": "The State Government shall designate one or more courts as a Special Court to try offences under this Act for each district.", "keywords": ["POCSO", "special court", "child court", "fast track"]},
+        },
+    },
+    {
+        "act_name": "Protection of Women from Domestic Violence Act, 2005",
+        "act_short": "PWDVA",
+        "sections": {
+            "3": {"title": "Definition of Domestic Violence", "description": "Any act, omission or commission or conduct of the respondent that harms or injures or endangers the health, safety, life, limb or well-being of the aggrieved person including physical, sexual, verbal, emotional and economic abuse.", "keywords": ["domestic violence", "definition", "physical abuse", "emotional abuse", "economic abuse"]},
+            "12": {"title": "Application to Magistrate", "description": "An aggrieved person or a Protection Officer or any other person on behalf of the aggrieved person may present an application to the Magistrate seeking relief under the Act.", "keywords": ["domestic violence", "application", "magistrate", "complaint", "protection order"]},
+            "17": {"title": "Right to Reside in Shared Household", "description": "Notwithstanding anything contained in any other law, every woman in a domestic relationship shall have the right to reside in the shared household.", "keywords": ["shared household", "right to reside", "matrimonial home", "wife", "domestic violence"]},
+            "18": {"title": "Protection Orders", "description": "The Magistrate may pass a protection order in favour of the aggrieved person and prohibit the respondent from committing any act of domestic violence, entering the workplace or school, communicating with the aggrieved person.", "keywords": ["protection order", "restraining order", "domestic violence", "court order"]},
+            "20": {"title": "Monetary Reliefs", "description": "The Magistrate may direct the respondent to pay monetary relief to meet the expenses incurred and losses suffered by the aggrieved person and any child as a result of the domestic violence.", "keywords": ["monetary relief", "compensation", "domestic violence", "financial support", "maintenance"]},
+        },
+    },
+    {
+        "act_name": "Right to Information Act, 2005",
+        "act_short": "RTI",
+        "sections": {
+            "3": {"title": "Right to Information", "description": "Subject to the provisions of this Act, all citizens shall have the right to information.", "keywords": ["RTI", "right to information", "citizen", "government information"]},
+            "4": {"title": "Obligations of Public Authorities", "description": "Every public authority shall maintain all its records duly catalogued and indexed, and publish all relevant facts while formulating important policies or announcing decisions.", "keywords": ["RTI", "public authority", "transparency", "proactive disclosure"]},
+            "7": {"title": "Disposal of Request", "description": "The Central Public Information Officer shall dispose of every request within 30 days of its receipt. Where the request pertains to the life or liberty of a person, it shall be disposed of within 48 hours.", "keywords": ["RTI", "30 days", "48 hours", "response time", "public information officer"]},
+            "8": {"title": "Exemption from Disclosure of Information", "description": "There shall be no obligation to give any citizen information that would prejudicially affect the sovereignty and integrity of India, security of the State, strategic interests, or which has been expressly forbidden by courts.", "keywords": ["RTI", "exemption", "national security", "disclosure exempt", "privacy"]},
+            "19": {"title": "Appeal", "description": "Any person who does not receive a decision within 30 days or is aggrieved by a decision may prefer an appeal to the officer designated by the public authority.", "keywords": ["RTI", "appeal", "first appeal", "second appeal", "information commission"]},
+        },
+    },
+    {
+        "act_name": "Industrial Disputes Act, 1947",
+        "act_short": "IDA",
+        "sections": {
+            "2(s)": {"title": "Workman Defined", "description": "Workman means any person including an apprentice employed in any industry to do any manual, unskilled, skilled, technical, operational, clerical or supervisory work for hire or reward.", "keywords": ["workman", "employee", "industrial dispute", "worker", "labour"]},
+            "25F": {"title": "Conditions Precedent to Retrenchment", "description": "No workman who has been in continuous service for not less than one year under an employer shall be retrenched by that employer until the workman has been given one month's notice or wages in lieu of notice.", "keywords": ["retrenchment", "layoff", "termination", "one month notice", "compensation"]},
+            "25G": {"title": "Procedure for Retrenchment", "description": "The employer shall ordinarily retrench the workman who was the last person to be employed in that category. This is the 'last come first go' principle.", "keywords": ["retrenchment", "last come first go", "LIFO", "layoff procedure"]},
+            "33": {"title": "Conditions of Service During Pendency of Proceedings", "description": "During the pendency of any conciliation proceeding, no employer shall alter the conditions of service of any workman or discharge or punish such workman.", "keywords": ["protected workman", "conditions of service", "during proceedings", "employer restrictions"]},
+            "10": {"title": "Reference of Disputes to Boards, Courts or Tribunals", "description": "Where the appropriate Government is of opinion that any industrial dispute exists or is apprehended, it may refer the dispute to conciliation, Labour Court, Industrial Tribunal, or National Tribunal.", "keywords": ["industrial dispute", "reference", "tribunal", "labour court", "conciliation"]},
         },
     },
 ]
@@ -484,6 +722,55 @@ def lookup_bnss_section(section: str) -> dict[str, Any] | None:
     return None
 
 
+_ACT_SHORT_PATTERNS: dict[str, str] = {
+    "BSA": "BSA",
+    "BHARATIYA SAKSHYA": "BSA",
+    "EVIDENCE ACT": "BSA",
+    "IEA": "BSA",
+    "TPA": "TPA",
+    "TRANSFER OF PROPERTY": "TPA",
+    "POCSO": "POCSO",
+    "PROTECTION OF CHILDREN": "POCSO",
+    "PWDVA": "PWDVA",
+    "DOMESTIC VIOLENCE": "PWDVA",
+    "RTI": "RTI",
+    "RIGHT TO INFORMATION": "RTI",
+    "IDA": "IDA",
+    "INDUSTRIAL DISPUTES": "IDA",
+    "ICA": "ICA",
+    "CONTRACT ACT": "ICA",
+    "INDIAN CONTRACT": "ICA",
+    "CPA": "CPA",
+    "CONSUMER PROTECTION": "CPA",
+    "NI ACT": "NI Act",
+    "NEGOTIABLE INSTRUMENTS": "NI Act",
+    "IT ACT": "IT Act",
+    "INFORMATION TECHNOLOGY": "IT Act",
+    "COI": "COI",
+    "CONSTITUTION": "COI",
+    "ARTICLE": "COI",
+}
+
+
+def lookup_other_act_section(act_short: str, section: str) -> dict[str, Any] | None:
+    """Look up a section in OTHER_IMPORTANT_LAWS by act short name and section number."""
+    section_upper = section.strip().upper()
+    for act_info in OTHER_IMPORTANT_LAWS:
+        if act_info["act_short"].upper() == act_short.upper():
+            for sec_key, sec_data in act_info["sections"].items():
+                if sec_key.upper() == section_upper:
+                    return {
+                        "found": True,
+                        "act": act_info["act_name"],
+                        "act_short": act_info["act_short"],
+                        "section": sec_key,
+                        "title": sec_data["title"],
+                        "description": sec_data["description"],
+                        "keywords": sec_data.get("keywords", []),
+                    }
+    return None
+
+
 def lookup_section(query: str) -> dict[str, Any] | None:
     """
     Universal section lookup that tries to identify the act and section.
@@ -492,33 +779,43 @@ def lookup_section(query: str) -> dict[str, Any] | None:
     - "BNS 318", "Section 318 BNS"
     - "CrPC 154", "Section 154 CrPC"
     - "BNSS 173"
+    - "RTI Section 7", "POCSO 3", "Article 21"
+    - "Section 138 NI Act", "IT Act 66"
     """
     query = query.strip().upper()
-    
+
     ipc_match = re.search(r"(?:IPC|INDIAN\s*PENAL\s*CODE)\s*(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)", query)
     if not ipc_match:
         ipc_match = re.search(r"(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)\s*(?:OF\s*)?(?:IPC|INDIAN\s*PENAL\s*CODE)", query)
     if ipc_match:
         return lookup_ipc_section(ipc_match.group(1))
-    
+
     bns_match = re.search(r"(?:BNS|BHARATIYA\s*NYAYA\s*SANHITA)\s*(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)", query)
     if not bns_match:
         bns_match = re.search(r"(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)\s*(?:OF\s*)?(?:BNS|BHARATIYA\s*NYAYA\s*SANHITA)", query)
     if bns_match:
         return lookup_bns_section(bns_match.group(1))
-    
+
     crpc_match = re.search(r"(?:CRPC|CR\.?P\.?C\.?|CRIMINAL\s*PROCEDURE\s*CODE)\s*(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)", query)
     if not crpc_match:
         crpc_match = re.search(r"(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)\s*(?:OF\s*)?(?:CRPC|CR\.?P\.?C\.?)", query)
     if crpc_match:
         return lookup_crpc_section(crpc_match.group(1))
-    
+
     bnss_match = re.search(r"(?:BNSS|BHARATIYA\s*NAGARIK\s*SURAKSHA\s*SANHITA)\s*(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)", query)
     if not bnss_match:
         bnss_match = re.search(r"(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)\s*(?:OF\s*)?(?:BNSS)", query)
     if bnss_match:
         return lookup_bnss_section(bnss_match.group(1))
-    
+
+    for pattern, act_short in _ACT_SHORT_PATTERNS.items():
+        if pattern in query:
+            sec_match = re.search(r"(?:SECTION|SEC\.?|S\.?|ARTICLE|ART\.?)?\s*(\d+[A-Z]?(?:\([A-Z0-9]+\))?)", query)
+            if sec_match:
+                result = lookup_other_act_section(act_short, sec_match.group(1))
+                if result:
+                    return result
+
     section_only = re.search(r"(?:SECTION|SEC\.?|S\.?)?\s*(\d+[A-Z]?)", query)
     if section_only:
         section = section_only.group(1)
@@ -528,7 +825,7 @@ def lookup_section(query: str) -> dict[str, Any] | None:
         result = lookup_crpc_section(section)
         if result:
             return result
-    
+
     return None
 
 

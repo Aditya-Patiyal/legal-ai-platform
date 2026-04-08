@@ -235,6 +235,18 @@ def expand_legal_query(query: str) -> str:
         "landlord": "lessor owner property rental",
         "tenant": "lessee renter occupant",
         "eviction": "vacate possession removal",
+        "rti": "right to information public authority transparency government records",
+        "pocso": "child sexual offence minor protection special court",
+        "domestic violence": "PWDVA protection order shared household monetary relief",
+        "maintenance": "alimony monthly allowance wife children parents 125 crpc",
+        "mortgage": "home loan property loan security bank TPA",
+        "retrenchment": "layoff termination notice compensation IDA labour",
+        "evidence": "admissibility witness burden proof BSA electronic record",
+        "stalking": "following harassment cyberstalking 354D BNS 78",
+        "sexual harassment": "workplace POSH unwelcome advances 354A BNS 75",
+        "forgery": "fake document false record 463 467 468 BNS 334",
+        "conspiracy": "criminal conspiracy 120B joint plan abetment",
+        "dacoity": "gang robbery five persons 395 BNS 310",
     }
     
     query_lower = query.lower()
