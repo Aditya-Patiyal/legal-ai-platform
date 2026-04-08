@@ -57,41 +57,70 @@ def generate_llm_response(prompt: str) -> str:
     response = get_ollama_client().generate(model=OLLAMA_CHAT_MODEL, prompt=prompt)
     return response.get("response", "I could not generate a response.").strip()
 
-SYSTEM_PROMPT = """You are a legal document assistant helping non-lawyers understand their documents and Indian law.
+SYSTEM_PROMPT = """You are a legal assistant helping non-lawyers understand Indian law and legal documents.
 
-CRITICAL INSTRUCTIONS:
-1. Answer based on the provided context (document excerpts and/or Indian law references).
-2. If the context doesn't contain enough information, say so clearly.
-3. Quote specific text from the context when relevant.
-4. Explain legal terms in plain English.
-5. When citing law sections, use the format: "Section X of [Act Name]".
-6. If both old law (IPC/CrPC) and new law (BNS/BNSS) apply, mention both.
-7. Always remind users this is AI assistance, not legal advice from a licensed lawyer.
+RESPONSE FORMAT — always structure your answer like this:
+**Direct Answer:** [One clear sentence answering the question]
+**Explanation:** [Plain English explanation, 2-4 sentences, no jargon]
+**Legal Basis:** [Cite the exact section, act, or document excerpt you are drawing from]
+**Important Note:** [Any limitation, uncertainty, or caveat; always end with: "This is AI assistance, not legal advice from a licensed lawyer."]
 
-Do NOT invent names, parties, sections, or details that are not explicitly in the provided context."""
+RULES:
+- Every legal claim must be backed by the provided context. If unsupported, say "I am uncertain about this — please verify with a lawyer."
+- Do NOT invent section numbers, punishments, names, or parties not in the provided context.
+- If both old law (IPC/CrPC) and new law (BNS/BNSS/BSA) apply, mention both."""
 
-DOCUMENT_ONLY_PROMPT = """You are a legal document assistant helping non-lawyers understand their documents.
+DOCUMENT_ONLY_PROMPT = """You are a legal document assistant helping non-lawyers understand their uploaded documents.
 
-CRITICAL INSTRUCTIONS:
-1. ONLY answer based on the document excerpts provided below. Do NOT make up information.
-2. If the context doesn't contain enough information to answer, say "I couldn't find this information in the uploaded document."
-3. Quote specific text from the context when relevant.
-4. Explain legal terms in plain English.
-5. Always remind users this is AI assistance, not legal advice from a licensed lawyer.
+RESPONSE FORMAT — always structure your answer like this:
+**Direct Answer:** [One clear sentence answering the question]
+**Explanation:** [Plain English explanation of what the document says, 2-4 sentences]
+**Source:** [Quote the exact relevant text from the document: \"...\"]
+**Important Note:** [Any limitation or caveat; always end with: "This is AI assistance, not legal advice from a licensed lawyer."]
 
-Do NOT invent names, parties, or details that are not explicitly in the provided context."""
+RULES:
+- ONLY use information from the document excerpts below. Do NOT add outside knowledge.
+- If the document doesn't contain the answer, say: "I couldn't find this information in the uploaded document."
+- Do NOT invent names, parties, dates, or amounts not in the document."""
 
 LAW_KNOWLEDGE_PROMPT = """You are an Indian law expert assistant helping non-lawyers understand legal concepts and statutes.
 
-CRITICAL INSTRUCTIONS:
-1. Answer based on the Indian law references provided below.
-2. Explain legal concepts in plain, easy-to-understand English.
-3. When citing sections, always mention both the section number and the Act name.
-4. If the new criminal laws (BNS/BNSS/BSA) have replaced old laws (IPC/CrPC/Evidence Act), mention both.
-5. Provide the punishment/penalty if applicable and available.
-6. Always remind users this is AI assistance, not legal advice from a licensed lawyer.
+RESPONSE FORMAT — always structure your answer like this:
+**Direct Answer:** [One clear sentence answering the question]
+**Explanation:** [Plain English explanation, 2-4 sentences]
+**Legal Basis:** [Cite: "Section X of [Act Name]" — include both old and new law if applicable (IPC↔BNS, CrPC↔BNSS)]
+**Punishment/Consequence:** [If applicable, state the exact penalty from the provided context]
+**Important Note:** [Always end with: "This is AI assistance, not legal advice from a licensed lawyer."]
 
-Do NOT invent section numbers, punishments, or legal provisions not in the provided context."""
+RULES:
+- Cite only sections that appear in the provided law references below.
+- If a section has been replaced by BNS/BNSS/BSA, mention both the old and new section numbers.
+- If the context is insufficient, say: "I don't have enough information about this specific provision — please consult a lawyer."
+- Do NOT invent section numbers, punishments, or provisions not in the provided context."""
+
+
+LEGAL_ISSUE_CATEGORIES: dict[str, list[str]] = {
+    "fraud_cheating": ["fraud", "cheat", "deceive", "misrepresentation", "420", "false promise", "scam"],
+    "breach_contract": ["breach", "default", "not paid", "didn't deliver", "violation", "broke the agreement"],
+    "employment": ["salary", "fired", "terminated", "employer", "employee", "retrenchment", "labour", "workman", "notice period"],
+    "tenancy_property": ["rent", "tenant", "landlord", "eviction", "lease", "property", "possession"],
+    "consumer": ["product", "defective", "consumer", "refund", "service deficiency", "online purchase"],
+    "criminal": ["murder", "theft", "assault", "rape", "robbery", "arrested", "fir", "bail", "accused"],
+    "family_matrimonial": ["divorce", "maintenance", "alimony", "custody", "marriage", "dowry", "cruelty"],
+    "cyber_it": ["hacking", "cyber", "online fraud", "password", "data", "social media", "defamatory post"],
+    "fundamental_rights": ["fundamental right", "discrimination", "article 21", "liberty", "free speech"],
+    "child_protection": ["child", "minor", "pocso", "juvenile"],
+}
+
+
+def spot_legal_issues(question: str) -> list[str]:
+    """Identify which legal issue categories the question falls into."""
+    question_lower = question.lower()
+    detected = []
+    for category, patterns in LEGAL_ISSUE_CATEGORIES.items():
+        if any(p in question_lower for p in patterns):
+            detected.append(category)
+    return detected
 
 
 def detect_query_type(question: str) -> str:
@@ -292,26 +321,42 @@ def build_combined_prompt(
     query_type: str,
 ) -> str:
     """Build a prompt combining document and law knowledge."""
-    
+    issue_tags = spot_legal_issues(question)
+    issue_hint = (
+        f"\n[Detected legal issue categories: {', '.join(issue_tags)}]\n"
+        if issue_tags else ""
+    )
+
     if query_type == "law_only":
         law_context = format_law_context(section_lookups, semantic_results)
         if not law_context.strip():
-            return f"{LAW_KNOWLEDGE_PROMPT}\n\nNo specific law references were found for your query.\n\nQuestion: {question}\n\nAnswer: I couldn't find specific Indian law sections matching your query. Please try asking about a specific section number (e.g., 'What is IPC 420?') or describe the legal issue you want to understand."
-        
-        return f"{LAW_KNOWLEDGE_PROMPT}\n\nHere are the relevant Indian law references:\n\n{law_context}\n\nBased on the above legal references, answer this question: {question}\n\nAnswer:"
-    
+            return (
+                f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\nNo specific law references were found for your query.\n\n"
+                f"Question: {question}\n\nAnswer: I couldn't find specific Indian law sections matching your query. "
+                f"Please try asking about a specific section number (e.g., 'What is IPC 420?') or describe the legal issue you want to understand."
+            )
+        return (
+            f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\nHere are the relevant Indian law references:\n\n"
+            f"{law_context}\n\nBased on the above legal references, answer this question: {question}\n\nAnswer:"
+        )
+
     elif query_type == "document_only":
         if not doc_chunks:
-            return f"{DOCUMENT_ONLY_PROMPT}\n\nNo relevant context was found in the document.\n\nQuestion: {question}\nAnswer: I couldn't find relevant information in the uploaded document to answer your question."
-        
+            return (
+                f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\nNo relevant context was found in the document.\n\n"
+                f"Question: {question}\nAnswer: I couldn't find relevant information in the uploaded document to answer your question."
+            )
         doc_context = format_document_context(doc_chunks)
-        return f"{DOCUMENT_ONLY_PROMPT}\n\nHere are the relevant excerpts from the uploaded document:\n\n{doc_context}\n\nBased ONLY on the above excerpts, answer this question: {question}\n\nAnswer:"
-    
+        return (
+            f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\nHere are the relevant excerpts from the uploaded document:\n\n"
+            f"{doc_context}\n\nBased ONLY on the above excerpts, answer this question: {question}\n\nAnswer:"
+        )
+
     else:
         doc_context = format_document_context(doc_chunks) if doc_chunks else "No relevant document excerpts found."
         law_context = format_law_context(section_lookups, semantic_results) if (section_lookups or semantic_results) else "No specific law references found."
-        
-        return f"""{SYSTEM_PROMPT}
+
+        return f"""{SYSTEM_PROMPT}{issue_hint}
 
 === UPLOADED DOCUMENT EXCERPTS ===
 {doc_context}
@@ -321,10 +366,7 @@ def build_combined_prompt(
 
 Based on BOTH the document excerpts AND the Indian law references above, answer this question: {question}
 
-Provide a comprehensive answer that:
-1. Addresses what the document says (if relevant)
-2. Explains the applicable Indian law provisions
-3. Connects the document content to relevant legal provisions (if applicable)
+Follow the response format exactly: Direct Answer → Explanation → Legal Basis → Important Note.
 
 Answer:"""
 
