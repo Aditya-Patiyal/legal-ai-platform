@@ -200,8 +200,21 @@ def me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, An
 
 def _process_document_bg(document_id: int, saved_path: str, user_id: int, original_filename: str) -> None:
     """Background task: extract text, chunk, and embed a document after upload."""
+    import traceback
+
+    extracted_text = ""
     try:
         extracted_text = extract_text(saved_path)
+    except Exception as exc:
+        print(f"[DOC {document_id}] Text extraction failed: {exc}")
+        traceback.print_exc()
+        execute(
+            "UPDATE documents SET upload_status = ? WHERE id = ?",
+            ("error", document_id),
+        )
+        return
+
+    try:
         structured_chunks = chunk_text_structured(saved_path)
         if structured_chunks:
             add_structured_chunks(user_id, document_id, original_filename, structured_chunks)
@@ -215,9 +228,11 @@ def _process_document_bg(document_id: int, saved_path: str, user_id: int, origin
             (extracted_text, chunk_count, "ready", document_id),
         )
     except Exception as exc:
+        print(f"[DOC {document_id}] Chunking/embedding failed: {exc}")
+        traceback.print_exc()
         execute(
-            "UPDATE documents SET upload_status = ? WHERE id = ?",
-            ("error", document_id),
+            "UPDATE documents SET extracted_text = ?, chunk_count = ?, upload_status = ? WHERE id = ?",
+            (extracted_text, 0, "ready", document_id),
         )
 
 

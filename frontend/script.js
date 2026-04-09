@@ -133,22 +133,34 @@ async function streamChatFetch(endpoint, body, onToken, onDone) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
+  let doneReceived = false;
+
+  function processLines(text) {
+    const lines = text.split('\n');
+    const remainder = lines.pop();
     for (const line of lines) {
       if (line.startsWith('data: ')) {
         try {
           const event = JSON.parse(line.slice(6));
           if (event.type === 'token') onToken(event.content);
-          else if (event.type === 'done') onDone(event);
+          else if (event.type === 'done') { onDone(event); doneReceived = true; }
         } catch (_) {}
       }
     }
+    return remainder;
   }
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    buffer = processLines(buffer);
+  }
+  // Process any remaining data left in the buffer
+  if (buffer.trim()) {
+    processLines(buffer + '\n');
+  }
+  return doneReceived;
 }
 
 function appendStreamingMessage(container) {
@@ -896,16 +908,23 @@ async function handleChat(event) {
     const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
     const body = documentId ? { document_id: documentId, question } : { question };
     
-    await streamChatFetch(
+    let streamFinalized = false;
+    const doneReceived = await streamChatFetch(
       endpoint,
       body,
       (token) => streaming.appendToken(token),
       (doneEvent) => {
         streaming.finalize();
+        streamFinalized = true;
         setHTML('retrieved-context', renderContextPanel(doneEvent));
         hideStatus(statusId);
       }
     );
+    // If stream ended without a 'done' event, still finalize the message
+    if (!streamFinalized) {
+      streaming.finalize();
+      hideStatus(statusId);
+    }
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }

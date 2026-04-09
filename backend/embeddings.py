@@ -73,13 +73,17 @@ def embed_text(text: str) -> list[float]:
     return _embed_text_ollama(text)
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
+def embed_texts(texts: list[str], batch_size: int = 20) -> list[list[float]]:
     """Embed multiple texts efficiently. Uses batch HF API call or sequential Ollama."""
     if not texts:
         return []
     hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip()
     if hf_key:
-        return _embed_batch_hf(texts, hf_key)
+        all_embeddings: list[list[float]] = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            all_embeddings.extend(_embed_batch_hf(batch, hf_key))
+        return all_embeddings
     return [_embed_text_ollama(t) for t in texts]
 
 
