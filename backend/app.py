@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import shutil
 from pathlib import Path
@@ -9,9 +10,9 @@ from uuid import uuid4
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import Cookie, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Cookie, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 
@@ -31,7 +32,7 @@ from backend.database import (
 from backend.document_parser import chunk_text, chunk_text_structured, extract_text
 from backend.embeddings import add_document_chunks, add_structured_chunks
 from backend.indian_law_kb import lookup_section, search_law_by_topic, semantic_search_laws, index_law_knowledge
-from backend.rag_pipeline import answer_law_question
+from backend.rag_pipeline import answer_law_question, stream_answer_question, stream_law_question
 from backend.generator import build_pdf, render_template
 from backend.ai_generator import smart_generate, classify_intent, get_groq_api_key, get_groq_client
 from backend.rag_pipeline import answer_question
@@ -197,8 +198,32 @@ def me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, An
     return {"user": sanitize_user(current_user)}
 
 
+def _process_document_bg(document_id: int, saved_path: str, user_id: int, original_filename: str) -> None:
+    """Background task: extract text, chunk, and embed a document after upload."""
+    try:
+        extracted_text = extract_text(saved_path)
+        structured_chunks = chunk_text_structured(saved_path)
+        if structured_chunks:
+            add_structured_chunks(user_id, document_id, original_filename, structured_chunks)
+            chunk_count = len(structured_chunks)
+        else:
+            chunks = chunk_text(extracted_text)
+            add_document_chunks(user_id, document_id, original_filename, chunks)
+            chunk_count = len(chunks)
+        execute(
+            "UPDATE documents SET extracted_text = ?, chunk_count = ?, upload_status = ? WHERE id = ?",
+            (extracted_text, chunk_count, "ready", document_id),
+        )
+    except Exception as exc:
+        execute(
+            "UPDATE documents SET upload_status = ? WHERE id = ?",
+            ("error", document_id),
+        )
+
+
 @app.post("/api/documents/upload")
 def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
@@ -209,24 +234,13 @@ def upload_document(
     saved_path = UPLOADS_DIR / saved_name
     with saved_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    original_filename = file.filename or saved_name
     document_id = execute(
         "INSERT INTO documents (user_id, filename, saved_path, file_type, upload_status) VALUES (?, ?, ?, ?, ?)",
-        (current_user["id"], file.filename or saved_name, str(saved_path), suffix.replace(".", ""), "processing"),
+        (current_user["id"], original_filename, str(saved_path), suffix.replace(".", ""), "processing"),
     )
-    extracted_text = extract_text(str(saved_path))
-    
-    structured_chunks = chunk_text_structured(str(saved_path))
-    if structured_chunks:
-        add_structured_chunks(current_user["id"], document_id, file.filename or saved_name, structured_chunks)
-        chunk_count = len(structured_chunks)
-    else:
-        chunks = chunk_text(extracted_text)
-        add_document_chunks(current_user["id"], document_id, file.filename or saved_name, chunks)
-        chunk_count = len(chunks)
-    
-    execute(
-        "UPDATE documents SET extracted_text = ?, chunk_count = ?, upload_status = ? WHERE id = ?",
-        (extracted_text, chunk_count, "ready", document_id),
+    background_tasks.add_task(
+        _process_document_bg, document_id, str(saved_path), current_user["id"], original_filename
     )
     document = row_to_dict(fetch_one("SELECT * FROM documents WHERE id = ?", (document_id,)))
     return {"document": document}
@@ -285,6 +299,19 @@ def delete_chat_history(document_id: int, current_user: dict[str, Any] = Depends
     return {"message": "Chat history cleared"}
 
 
+def _fetch_chat_history(user_id: int, document_id: int, limit: int = 3) -> list[dict[str, str]]:
+    """Fetch recent Q&A pairs as conversation history for the LLM."""
+    rows = fetch_all(
+        "SELECT question, answer FROM chat_history WHERE user_id = ? AND document_id = ? ORDER BY created_at DESC LIMIT ?",
+        (user_id, document_id, limit),
+    )
+    history: list[dict[str, str]] = []
+    for row in reversed(rows_to_dicts(rows)):
+        history.append({"role": "user", "content": row["question"]})
+        history.append({"role": "assistant", "content": row["answer"]})
+    return history
+
+
 @app.post("/api/chat")
 def chat(payload: ChatRequest, current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
     document = fetch_one(
@@ -293,7 +320,8 @@ def chat(payload: ChatRequest, current_user: dict[str, Any] = Depends(get_curren
     )
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    result = answer_question(document_id=payload.document_id, question=payload.question)
+    history = _fetch_chat_history(current_user["id"], payload.document_id)
+    result = answer_question(document_id=payload.document_id, question=payload.question, history=history)
     execute(
         "INSERT INTO chat_history (user_id, document_id, question, answer, sources_json) VALUES (?, ?, ?, ?, ?)",
         (current_user["id"], payload.document_id, payload.question, result["answer"], dumps_json(result["sources"])),
@@ -456,6 +484,57 @@ def law_ask(payload: LawQuestionRequest) -> dict[str, Any]:
     """Ask a question about Indian law without needing a document."""
     result = answer_law_question(payload.question)
     return result
+
+
+@app.post("/api/chat/stream")
+def chat_stream(payload: ChatRequest, current_user: dict[str, Any] = Depends(get_current_user)) -> StreamingResponse:
+    """Stream a chat response token-by-token via SSE."""
+    document = fetch_one(
+        "SELECT * FROM documents WHERE id = ? AND user_id = ?",
+        (payload.document_id, current_user["id"]),
+    )
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    history = _fetch_chat_history(current_user["id"], payload.document_id)
+
+    def event_generator():
+        full_answer: list[str] = []
+        final_event: dict[str, Any] = {}
+        for event in stream_answer_question(payload.document_id, payload.question, history=history):
+            if event["type"] == "token":
+                full_answer.append(event["content"])
+            else:
+                final_event = event
+            yield f"data: {json.dumps(event)}\n\n"
+        answer_text = "".join(full_answer)
+        execute(
+            "INSERT INTO chat_history (user_id, document_id, question, answer, sources_json) VALUES (?, ?, ?, ?, ?)",
+            (
+                current_user["id"],
+                payload.document_id,
+                payload.question,
+                answer_text,
+                dumps_json(final_event.get("sources", [])),
+            ),
+        )
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+class LawStreamRequest(BaseModel):
+    question: str
+
+
+@app.post("/api/law/ask/stream")
+def law_ask_stream(payload: LawStreamRequest) -> StreamingResponse:
+    """Stream a law-only answer token-by-token via SSE."""
+
+    def event_generator():
+        for event in stream_law_question(payload.question):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.post("/api/law/index")

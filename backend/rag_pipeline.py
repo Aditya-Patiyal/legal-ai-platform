@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any
+from typing import Any, Generator
 
 from .embeddings import OLLAMA_HOST, query_document_chunks
 from .hybrid_retrieval import search_with_expansion, hybrid_search
@@ -313,12 +313,25 @@ def build_prompt(question: str, context_chunks: list[dict[str, object]]) -> str:
     return f"{DOCUMENT_ONLY_PROMPT}\n\nHere are the relevant excerpts from the uploaded document:\n\n{context_text}\n\nBased ONLY on the above excerpts, answer this question: {question}\n\nAnswer:"
 
 
+def _format_history(history: list[dict[str, str]] | None) -> str:
+    """Format conversation history for injection into the prompt."""
+    if not history:
+        return ""
+    lines = ["=== RECENT CONVERSATION HISTORY ==="]
+    for msg in history:
+        role = "User" if msg.get("role") == "user" else "Assistant"
+        lines.append(f"{role}: {msg.get('content', '')[:600]}")
+    lines.append("=== END HISTORY ===\n")
+    return "\n".join(lines) + "\n"
+
+
 def build_combined_prompt(
     question: str,
     doc_chunks: list[dict[str, Any]],
     section_lookups: list[dict[str, Any]],
     semantic_results: list[dict[str, Any]],
     query_type: str,
+    history: list[dict[str, str]] | None = None,
 ) -> str:
     """Build a prompt combining document and law knowledge."""
     issue_tags = spot_legal_issues(question)
@@ -326,29 +339,30 @@ def build_combined_prompt(
         f"\n[Detected legal issue categories: {', '.join(issue_tags)}]\n"
         if issue_tags else ""
     )
+    history_section = _format_history(history)
 
     if query_type == "law_only":
         law_context = format_law_context(section_lookups, semantic_results)
         if not law_context.strip():
             return (
-                f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\nNo specific law references were found for your query.\n\n"
+                f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\n{history_section}No specific law references were found for your query.\n\n"
                 f"Question: {question}\n\nAnswer: I couldn't find specific Indian law sections matching your query. "
                 f"Please try asking about a specific section number (e.g., 'What is IPC 420?') or describe the legal issue you want to understand."
             )
         return (
-            f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\nHere are the relevant Indian law references:\n\n"
+            f"{LAW_KNOWLEDGE_PROMPT}{issue_hint}\n\n{history_section}Here are the relevant Indian law references:\n\n"
             f"{law_context}\n\nBased on the above legal references, answer this question: {question}\n\nAnswer:"
         )
 
     elif query_type == "document_only":
         if not doc_chunks:
             return (
-                f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\nNo relevant context was found in the document.\n\n"
+                f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\n{history_section}No relevant context was found in the document.\n\n"
                 f"Question: {question}\nAnswer: I couldn't find relevant information in the uploaded document to answer your question."
             )
         doc_context = format_document_context(doc_chunks)
         return (
-            f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\nHere are the relevant excerpts from the uploaded document:\n\n"
+            f"{DOCUMENT_ONLY_PROMPT}{issue_hint}\n\n{history_section}Here are the relevant excerpts from the uploaded document:\n\n"
             f"{doc_context}\n\nBased ONLY on the above excerpts, answer this question: {question}\n\nAnswer:"
         )
 
@@ -358,7 +372,7 @@ def build_combined_prompt(
 
         return f"""{SYSTEM_PROMPT}{issue_hint}
 
-=== UPLOADED DOCUMENT EXCERPTS ===
+{history_section}=== UPLOADED DOCUMENT EXCERPTS ===
 {doc_context}
 
 === INDIAN LAW REFERENCES ===
@@ -440,7 +454,11 @@ def build_law_fallback_answer(
     return "\n\n".join(parts)
 
 
-def answer_question(document_id: int, question: str) -> dict[str, object]:
+def answer_question(
+    document_id: int,
+    question: str,
+    history: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
     """Answer a question using hybrid retrieval and Indian law knowledge."""
     
     query_type = detect_query_type(question)
@@ -464,6 +482,7 @@ def answer_question(document_id: int, question: str) -> dict[str, object]:
         section_lookups=section_lookups,
         semantic_results=semantic_law_results,
         query_type=query_type,
+        history=history,
     )
     
     try:
@@ -484,6 +503,105 @@ def answer_question(document_id: int, question: str) -> dict[str, object]:
             "semantic_results": semantic_law_results,
         },
         "query_type": query_type,
+    }
+
+
+def generate_llm_response_stream(prompt: str) -> Generator[str, None, None]:
+    """Stream response tokens from Groq if available, otherwise fall back to Ollama."""
+    groq = get_groq_client()
+    if groq:
+        stream = groq.chat.completions.create(
+            model=GROQ_CHAT_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=2000,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
+        return
+    stream = get_ollama_client().generate(model=OLLAMA_CHAT_MODEL, prompt=prompt, stream=True)
+    for chunk in stream:
+        token = chunk.get("response", "")
+        if token:
+            yield token
+
+
+def stream_answer_question(
+    document_id: int,
+    question: str,
+    history: list[dict[str, str]] | None = None,
+) -> Generator[dict[str, Any], None, None]:
+    """Like answer_question but yields SSE-compatible dicts (tokens then a final done event)."""
+    query_type = detect_query_type(question)
+    doc_sources: list[dict[str, Any]] = []
+    section_lookups: list[dict[str, Any]] = []
+    semantic_law_results: list[dict[str, Any]] = []
+
+    if query_type in ["document_only", "document_plus_law"]:
+        try:
+            doc_sources = search_with_expansion(document_id, question, top_k=4)
+        except Exception:
+            doc_sources = query_document_chunks(document_id=document_id, query=question)
+
+    if query_type in ["law_only", "document_plus_law"]:
+        section_lookups, semantic_law_results = get_law_context(question)
+
+    prompt = build_combined_prompt(
+        question=question,
+        doc_chunks=doc_sources,
+        section_lookups=section_lookups,
+        semantic_results=semantic_law_results,
+        query_type=query_type,
+        history=history,
+    )
+
+    try:
+        for token in generate_llm_response_stream(prompt):
+            yield {"type": "token", "content": token}
+    except Exception:
+        yield {"type": "token", "content": "I couldn't generate a response right now. Please try again."}
+
+    yield {
+        "type": "done",
+        "sources": doc_sources,
+        "law_references": {
+            "section_lookups": section_lookups,
+            "semantic_results": semantic_law_results,
+        },
+        "query_type": query_type,
+    }
+
+
+def stream_law_question(question: str) -> Generator[dict[str, Any], None, None]:
+    """Stream an answer to a pure Indian law question."""
+    section_lookups, semantic_results = get_law_context(question)
+
+    prompt = build_combined_prompt(
+        question=question,
+        doc_chunks=[],
+        section_lookups=section_lookups,
+        semantic_results=semantic_results,
+        query_type="law_only",
+    )
+
+    try:
+        for token in generate_llm_response_stream(prompt):
+            yield {"type": "token", "content": token}
+    except Exception:
+        fallback = build_law_fallback_answer(question, section_lookups, semantic_results)
+        yield {"type": "token", "content": fallback}
+
+    yield {
+        "type": "done",
+        "sources": [],
+        "law_references": {
+            "section_lookups": section_lookups,
+            "semantic_results": semantic_results,
+        },
+        "query_type": "law_only",
     }
 
 

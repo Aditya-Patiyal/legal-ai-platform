@@ -90,6 +90,98 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function renderMarkdown(text) {
+  if (typeof marked !== 'undefined') {
+    return marked.parse(text || '');
+  }
+  return `<p>${escapeHtml(text)}</p>`;
+}
+
+let _docPollTimer = null;
+
+async function pollDocumentReady(documentId, statusId = null, maxAttempts = 25, intervalMs = 2000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    const data = await api(`/api/documents/${documentId}`);
+    const status = data.document.upload_status;
+    if (status === 'ready') return data.document;
+    if (status === 'error') throw new Error('Document processing failed. Please try uploading again.');
+    if (statusId) {
+      const dots = '.'.repeat((i % 3) + 1);
+      showStatus(statusId, `Processing document${dots}`, 'loading');
+    }
+  }
+  throw new Error('Document processing timed out. Please refresh and try again.');
+}
+
+async function streamChatFetch(endpoint, body, onToken, onDone) {
+  const token = getSessionToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'X-Session-Token': token } : {}),
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(errData.detail || 'Request failed');
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === 'token') onToken(event.content);
+          else if (event.type === 'done') onDone(event);
+        } catch (_) {}
+      }
+    }
+  }
+}
+
+function appendStreamingMessage(container) {
+  if (!container) return { appendToken: () => {}, finalize: () => '' };
+  const emptyState = container.querySelector('.chatbot-empty');
+  if (emptyState) emptyState.remove();
+  const div = document.createElement('div');
+  div.className = 'chatbot-message chatbot-message-assistant';
+  const bubble = document.createElement('div');
+  bubble.className = 'chatbot-bubble chatbot-bubble-assistant';
+  const textDiv = document.createElement('div');
+  textDiv.className = 'chatbot-text chatbot-streaming';
+  bubble.appendChild(textDiv);
+  div.appendChild(bubble);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  let rawText = '';
+  return {
+    appendToken(token) {
+      rawText += token;
+      textDiv.textContent = rawText;
+      container.scrollTop = container.scrollHeight;
+    },
+    finalize() {
+      textDiv.classList.remove('chatbot-streaming');
+      textDiv.classList.add('chatbot-markdown');
+      textDiv.innerHTML = renderMarkdown(rawText);
+      container.scrollTop = container.scrollHeight;
+      return rawText;
+    },
+  };
+}
+
 async function hydrateUser() {
   try {
     const data = await api('/api/me');
@@ -303,6 +395,17 @@ async function loadDocuments(selectId) {
       select.value = String(state.selectedDocumentId);
     }
   }
+  // Auto-refresh while any document is still processing
+  const hasProcessing = data.documents.some((d) => d.upload_status === 'processing');
+  if (hasProcessing && !_docPollTimer) {
+    _docPollTimer = setTimeout(async () => {
+      _docPollTimer = null;
+      await loadDocuments(selectId);
+    }, 3000);
+  } else if (!hasProcessing && _docPollTimer) {
+    clearTimeout(_docPollTimer);
+    _docPollTimer = null;
+  }
 }
 
 async function handleUpload(event) {
@@ -323,7 +426,7 @@ async function handleUpload(event) {
       throw new Error('Only PDF and DOCX files are supported');
     }
     
-    showStatus(statusId, `Uploading and analyzing ${file.name}...`, 'loading');
+    showStatus(statusId, `Uploading ${file.name}...`, 'loading');
     
     const formData = new FormData();
     formData.append('file', file);
@@ -333,9 +436,15 @@ async function handleUpload(event) {
       body: formData,
     });
     
-    showStatus(statusId, `Successfully uploaded ${data.document.filename}`, 'success');
     fileInput.value = '';
     await loadDocuments();
+    
+    if (data.document.upload_status === 'processing') {
+      showStatus(statusId, `Processing ${data.document.filename}...`, 'loading');
+      await pollDocumentReady(data.document.id, statusId);
+      await loadDocuments();
+    }
+    showStatus(statusId, `Successfully uploaded ${data.document.filename}`, 'success');
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -451,7 +560,7 @@ function appendChatbotMessage(container, role, text) {
   } else {
     div.innerHTML = `
       <div class="chatbot-bubble chatbot-bubble-assistant">
-        <div class="chatbot-text">${escapeHtml(text)}</div>
+        <div class="chatbot-text chatbot-markdown">${renderMarkdown(text)}</div>
       </div>
     `;
   }
@@ -483,7 +592,7 @@ async function loadChatHistory(documentId) {
           </div>
           <div class="chatbot-message chatbot-message-assistant">
             <div class="chatbot-bubble chatbot-bubble-assistant">
-              <div class="chatbot-text">${escapeHtml(message.answer)}</div>
+              <div class="chatbot-text chatbot-markdown">${renderMarkdown(message.answer)}</div>
             </div>
           </div>
         `
@@ -650,6 +759,10 @@ async function handleLandingChat(event) {
         body: formData,
       });
       documentId = result.document.id;
+      if (result.document.upload_status === 'processing') {
+        showStatus(statusId, `Processing ${file.name}...`, 'loading');
+        await pollDocumentReady(documentId);
+      }
       // Clear file input
       if (landingFileUpload) landingFileUpload.value = '';
       if (landingFileName) landingFileName.textContent = '';
@@ -659,27 +772,23 @@ async function handleLandingChat(event) {
     }
   }
   
-  // Now ask the question
+  // Now ask the question with streaming
   try {
     showStatus(statusId, 'Thinking...', 'loading');
     
-    let data;
-    if (documentId) {
-      data = await api('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ document_id: documentId, question }),
-      });
-    } else {
-      data = await api('/api/law/ask', {
-        method: 'POST',
-        body: JSON.stringify({ question }),
-      });
-    }
+    const streaming = appendStreamingMessage(landingChatMessages);
+    const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
+    const body = documentId ? { document_id: documentId, question } : { question };
     
-    // Add assistant message
-    appendChatbotMessage(landingChatMessages, 'assistant', data.answer);
-    hideStatus(statusId);
-    
+    await streamChatFetch(
+      endpoint,
+      body,
+      (token) => streaming.appendToken(token),
+      () => {
+        streaming.finalize();
+        hideStatus(statusId);
+      }
+    );
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -725,6 +834,10 @@ async function handleDashboardChat(event) {
         body: formData,
       });
       documentId = result.document.id;
+      if (result.document.upload_status === 'processing') {
+        showStatus(statusId, `Processing ${file.name}...`, 'loading');
+        await pollDocumentReady(documentId);
+      }
       // Clear file input
       if (dashboardFileUpload) dashboardFileUpload.value = '';
       if (dashboardFileName) dashboardFileName.textContent = '';
@@ -734,27 +847,23 @@ async function handleDashboardChat(event) {
     }
   }
   
-  // Now ask the question
+  // Now ask the question with streaming
   try {
     showStatus(statusId, 'Thinking...', 'loading');
     
-    let data;
-    if (documentId) {
-      data = await api('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ document_id: documentId, question }),
-      });
-    } else {
-      data = await api('/api/law/ask', {
-        method: 'POST',
-        body: JSON.stringify({ question }),
-      });
-    }
+    const streaming = appendStreamingMessage(dashboardChatMessages);
+    const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
+    const body = documentId ? { document_id: documentId, question } : { question };
     
-    // Add assistant message
-    appendChatbotMessage(dashboardChatMessages, 'assistant', data.answer);
-    hideStatus(statusId);
-    
+    await streamChatFetch(
+      endpoint,
+      body,
+      (token) => streaming.appendToken(token),
+      () => {
+        streaming.finalize();
+        hideStatus(statusId);
+      }
+    );
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -782,30 +891,21 @@ async function handleChat(event) {
     
     showStatus(statusId, 'Thinking...', 'loading');
     
-    let data;
-    if (documentId) {
-      // Document-based query
-      data = await api('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ document_id: documentId, question }),
-      });
-    } else {
-      // Law-only query (no document)
-      data = await api('/api/law/ask', {
-        method: 'POST',
-        body: JSON.stringify({ question }),
-      });
-      // Normalize response format
-      data.sources = [];
-      data.query_type = 'law_only';
-    }
+    const container = byId('chat-messages');
+    const streaming = appendStreamingMessage(container);
+    const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
+    const body = documentId ? { document_id: documentId, question } : { question };
     
-    appendMessage('assistant', data.answer);
-    
-    // Render the enhanced context panel with both document and law sources
-    setHTML('retrieved-context', renderContextPanel(data));
-    
-    hideStatus(statusId);
+    await streamChatFetch(
+      endpoint,
+      body,
+      (token) => streaming.appendToken(token),
+      (doneEvent) => {
+        streaming.finalize();
+        setHTML('retrieved-context', renderContextPanel(doneEvent));
+        hideStatus(statusId);
+      }
+    );
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -835,8 +935,6 @@ async function handleChatUpload(event) {
       body: formData,
     });
     
-    showStatus(statusId, `Uploaded ${data.document.filename}`, 'success');
-    
     // Refresh document list and select the new document
     await loadChatDocumentOptions();
     const select = byId('chat-document-id');
@@ -848,6 +946,11 @@ async function handleChatUpload(event) {
     // Clear the file input
     event.target.value = '';
     
+    if (data.document.upload_status === 'processing') {
+      showStatus(statusId, `Processing ${data.document.filename}...`, 'loading');
+      await pollDocumentReady(data.document.id, statusId);
+    }
+    showStatus(statusId, `Ready: ${data.document.filename}`, 'success');
     setTimeout(() => hideStatus(statusId), 3000);
   } catch (error) {
     showStatus(statusId, error.message, 'error');
