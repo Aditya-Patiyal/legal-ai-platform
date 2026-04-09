@@ -792,15 +792,21 @@ async function handleLandingChat(event) {
     const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
     const body = documentId ? { document_id: documentId, question } : { question };
     
+    let landingFinalized = false;
     await streamChatFetch(
       endpoint,
       body,
       (token) => streaming.appendToken(token),
       () => {
         streaming.finalize();
+        landingFinalized = true;
         hideStatus(statusId);
       }
     );
+    if (!landingFinalized) {
+      streaming.finalize();
+      hideStatus(statusId);
+    }
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -867,15 +873,21 @@ async function handleDashboardChat(event) {
     const endpoint = documentId ? '/api/chat/stream' : '/api/law/ask/stream';
     const body = documentId ? { document_id: documentId, question } : { question };
     
+    let dashFinalized = false;
     await streamChatFetch(
       endpoint,
       body,
       (token) => streaming.appendToken(token),
       () => {
         streaming.finalize();
+        dashFinalized = true;
         hideStatus(statusId);
       }
     );
+    if (!dashFinalized) {
+      streaming.finalize();
+      hideStatus(statusId);
+    }
   } catch (error) {
     showStatus(statusId, error.message, 'error');
   }
@@ -1312,17 +1324,16 @@ window.addEventListener('DOMContentLoaded', () => {
     
     navLogoutBtn.addEventListener('click', async () => {
       try {
-        await api('/api/logout', { method: 'POST' });
-        clearSessionToken();
-        state.user = null;
-        navAuthBtn.style.display = 'inline-flex';
-        navLogoutBtn.style.display = 'none';
-        // Show auth section again after logout
-        if (authSection) authSection.style.display = 'block';
-        window.location.href = '/';
+        await api('/api/auth/logout', { method: 'POST' });
       } catch (error) {
-        console.error('Logout failed:', error);
+        console.error('Logout API error (ignored):', error);
       }
+      clearSessionToken();
+      state.user = null;
+      navAuthBtn.style.display = 'inline-flex';
+      navLogoutBtn.style.display = 'none';
+      if (authSection) authSection.style.display = 'block';
+      window.location.href = '/';
     });
   }
   
