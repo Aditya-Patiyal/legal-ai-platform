@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from .embeddings import query_document_chunks
+from .database import fetch_one
 
 CLAUSE_QUERIES = {
     "termination": "termination clause contract termination notice expiry end agreement",
@@ -40,6 +41,18 @@ Explain in this format:
 
 Keep it under 150 words. No legal jargon."""
 
+_EXTRACT_CLAUSE_PROMPT = """You are a legal clause extraction expert. Given the following legal document text, find and extract the {clause_type} clause or the most relevant section related to {clause_type}.
+
+DOCUMENT TEXT:
+{document_text}
+
+Instructions:
+1. Find the most relevant section related to "{clause_type}" in the document.
+2. Extract the exact text of that clause/section (up to 500 characters).
+3. If no such clause exists, say "NOT_FOUND".
+
+Return ONLY the extracted clause text, nothing else."""
+
 
 def _explain_with_groq(clause_type: str, snippet: str) -> str | None:
     """Use Groq to explain a clause in plain English. Returns None if unavailable."""
@@ -60,6 +73,32 @@ def _explain_with_groq(clause_type: str, snippet: str) -> str | None:
             max_tokens=350,
         )
         return response.choices[0].message.content.strip()
+    except Exception:
+        return None
+
+
+def _extract_clause_with_groq(clause_type: str, document_text: str) -> str | None:
+    """Use Groq to extract a clause directly from document text. Fallback when vector search fails."""
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key or api_key == "your_groq_api_key_here":
+        return None
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        prompt = _EXTRACT_CLAUSE_PROMPT.format(
+            clause_type=clause_type.replace("_", " "),
+            document_text=document_text[:8000],
+        )
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=600,
+        )
+        result = response.choices[0].message.content.strip()
+        if "NOT_FOUND" in result:
+            return None
+        return result
     except Exception:
         return None
 
@@ -87,20 +126,38 @@ def explain_clause(clause_type: str, text: str) -> str:
 def extract_clause(document_id: int, clause_type: str) -> dict[str, object]:
     query = CLAUSE_QUERIES.get(clause_type.lower(), clause_type)
     matches = query_document_chunks(document_id=document_id, query=query, limit=2)
-    if not matches:
+
+    # If vector search returned results, use them
+    if matches:
+        match = matches[0]
+        snippet = str(match["text"])
         return {
             "clause_type": clause_type,
-            "snippet": "",
-            "explanation": "No matching clause was found in the document.",
-            "risk_level": "Low",
-            "source": None,
+            "snippet": snippet,
+            "explanation": explain_clause(clause_type, snippet),
+            "risk_level": classify_risk(snippet),
+            "source": match["metadata"],
         }
-    match = matches[0]
-    snippet = str(match["text"])
+
+    # Fallback: use extracted text from DB + Groq to find the clause
+    row = fetch_one("SELECT extracted_text FROM documents WHERE id = ?", (document_id,))
+    extracted_text = row["extracted_text"] if row else ""
+
+    if extracted_text:
+        snippet = _extract_clause_with_groq(clause_type, extracted_text)
+        if snippet:
+            return {
+                "clause_type": clause_type,
+                "snippet": snippet,
+                "explanation": explain_clause(clause_type, snippet),
+                "risk_level": classify_risk(snippet),
+                "source": {"method": "ai_extraction"},
+            }
+
     return {
         "clause_type": clause_type,
-        "snippet": snippet,
-        "explanation": explain_clause(clause_type, snippet),
-        "risk_level": classify_risk(snippet),
-        "source": match["metadata"],
+        "snippet": "",
+        "explanation": "No matching clause was found in the document.",
+        "risk_level": "Low",
+        "source": None,
     }

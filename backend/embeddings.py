@@ -16,7 +16,7 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 COLLECTION_NAME = "legal_documents"
 
 HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-HF_EMBED_URL = f"https://api-inference.huggingface.co/models/{HF_EMBED_MODEL}"
+HF_EMBED_URL = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_EMBED_MODEL}"
 
 # Lazy initialization - only create clients when needed
 _ollama_client = None
@@ -65,26 +65,36 @@ def _embed_batch_hf(texts: list[str], api_key: str) -> list[list[float]]:
     return [[v for v in result]]
 
 
-def embed_text(text: str) -> list[float]:
-    """Embed a single text. Uses HuggingFace API when HUGGINGFACE_API_KEY is set, else Ollama."""
+GROQ_EMBED_MODEL = "text-embedding-3-small" # placeholder if using another provider later or Groq's model
+# Groq currently does not provide an official embedding endpoint in the same way OpenAI does.
+# We will use HuggingFace as the primary cloud-only provider and remove Ollama fallbacks.
+
+def embed_text(text: str) -> list[float] | None:
+    """Embed a single text. Returns None if no embedding provider is available."""
     hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip()
     if hf_key:
-        return _embed_batch_hf([text], hf_key)[0]
-    return _embed_text_ollama(text)
+        try:
+            return _embed_batch_hf([text], hf_key)[0]
+        except Exception as e:
+            print(f"[EMBED] HuggingFace embedding failed: {e}")
+    return None
 
 
-def embed_texts(texts: list[str], batch_size: int = 20) -> list[list[float]]:
-    """Embed multiple texts efficiently. Uses batch HF API call or sequential Ollama."""
+def embed_texts(texts: list[str], batch_size: int = 20) -> list[list[float]] | None:
+    """Embed multiple texts efficiently. Returns None if no provider is available."""
     if not texts:
         return []
     hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip()
     if hf_key:
-        all_embeddings: list[list[float]] = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            all_embeddings.extend(_embed_batch_hf(batch, hf_key))
-        return all_embeddings
-    return [_embed_text_ollama(t) for t in texts]
+        try:
+            all_embeddings: list[list[float]] = []
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i : i + batch_size]
+                all_embeddings.extend(_embed_batch_hf(batch, hf_key))
+            return all_embeddings
+        except Exception as e:
+            print(f"[EMBED] HuggingFace batch embedding failed: {e}")
+    return None
 
 
 def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: list[str]) -> None:
@@ -92,7 +102,6 @@ def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: l
         return
     collection = get_collection()
     ids = [f"doc-{document_id}-chunk-{index}" for index in range(len(chunks))]
-    embeddings = embed_texts(chunks)
     metadatas: list[dict[str, Any]] = [
         {
             "user_id": user_id,
@@ -102,7 +111,12 @@ def add_document_chunks(user_id: int, document_id: int, filename: str, chunks: l
         }
         for index in range(len(chunks))
     ]
-    collection.upsert(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
+    embeddings = embed_texts(chunks)
+    if embeddings and len(embeddings) == len(chunks):
+        collection.upsert(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
+    else:
+        # Let ChromaDB use its built-in default embedding function
+        collection.upsert(ids=ids, documents=chunks, metadatas=metadatas)
 
 
 def add_structured_chunks(
@@ -138,17 +152,36 @@ def add_structured_chunks(
             meta["clause_number"] = chunk.clause_number
         metadatas.append(meta)
     
-    collection.upsert(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas)
+    if embeddings and len(embeddings) == len(documents):
+        collection.upsert(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas)
+    else:
+        # Let ChromaDB use its built-in default embedding function
+        collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
 
 def query_document_chunks(document_id: int, query: str, limit: int = 4) -> list[dict[str, Any]]:
     collection = get_collection()
-    results = collection.query(
-        query_embeddings=[embed_text(query)],
-        n_results=limit,
-        where={"document_id": document_id},
-        include=["documents", "metadatas", "distances"],
-    )
+    try:
+        embedding = embed_text(query)
+        if embedding:
+            results = collection.query(
+                query_embeddings=[embedding],
+                n_results=limit,
+                where={"document_id": document_id},
+                include=["documents", "metadatas", "distances"],
+            )
+        else:
+            # Fall back to ChromaDB's default embedding via query_texts
+            results = collection.query(
+                query_texts=[query],
+                n_results=limit,
+                where={"document_id": document_id},
+                include=["documents", "metadatas", "distances"],
+            )
+    except Exception as e:
+        print(f"[EMBED] ChromaDB query failed: {e}")
+        return []
+    
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]

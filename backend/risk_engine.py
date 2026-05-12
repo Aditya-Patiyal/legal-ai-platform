@@ -94,6 +94,13 @@ def analyze_document_text(text: str) -> dict[str, object]:
 def analyze_document(document_id: int) -> dict[str, object]:
     row = fetch_one("SELECT extracted_text FROM documents WHERE id = ?", (document_id,))
     text = row["extracted_text"] if row else ""
+    if not text or not text.strip():
+        return {
+            "risk_score": 1,
+            "findings": ["Document text could not be extracted or is empty. Please re-upload the document."],
+            "summary": "Unable to analyze risk: the document text is empty or could not be extracted. Please try re-uploading the document.",
+            "analysis_method": "none",
+        }
     result = analyze_document_text(text)
     if not result.get("summary"):
         result["summary"] = (

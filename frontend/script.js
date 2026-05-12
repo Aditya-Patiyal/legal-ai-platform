@@ -4,6 +4,14 @@ const state = {
   selectedDocumentId: null,
 };
 
+// Hide auth-related elements on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const authBtn = byId('nav-auth-btn');
+  if (authBtn) authBtn.style.display = 'none';
+  const logoutBtn = byId('nav-logout-btn');
+  if (logoutBtn) logoutBtn.style.display = 'none';
+});
+
 function setSessionToken(token) {
   document.cookie = `session_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
@@ -195,16 +203,12 @@ function appendStreamingMessage(container) {
 }
 
 async function hydrateUser() {
-  try {
-    const data = await api('/api/me');
-    state.user = data.user;
-    document.querySelectorAll('[data-auth-name]').forEach((node) => {
-      node.textContent = state.user.name;
-    });
-    return data.user;
-  } catch {
-    return null;
-  }
+  // Authentication disabled: return mock user
+  state.user = { id: 1, name: "Guest User", email: "guest@example.com" };
+  document.querySelectorAll('[data-auth-name]').forEach((node) => {
+    node.textContent = state.user.name;
+  });
+  return state.user;
 }
 
 async function handleSignup(event) {
@@ -453,7 +457,15 @@ async function handleUpload(event) {
     
     if (data.document.upload_status === 'processing') {
       showStatus(statusId, `Processing ${data.document.filename}...`, 'loading');
-      await pollDocumentReady(data.document.id, statusId);
+      const readyDoc = await pollDocumentReady(data.document.id, statusId);
+      
+      // Update the local documents list in state with the ready document
+      const index = state.documents.findIndex(d => d.id === readyDoc.id);
+      if (index !== -1) {
+        state.documents[index] = readyDoc;
+      } else {
+        state.documents.unshift(readyDoc);
+      }
       await loadDocuments();
     }
     showStatus(statusId, `Successfully uploaded ${data.document.filename}`, 'success');
@@ -1144,13 +1156,9 @@ function forceGenerateDocument() {
 async function bootstrap() {
   const page = document.body.dataset.page;
   try {
-    if (page !== 'landing') {
-      const user = await hydrateUser();
-      if (!user) {
-        window.location.href = '/';
-        return;
-      }
-    }
+    // Authentication disabled: always hydrate guest user
+    await hydrateUser();
+    
     if (page === 'dashboard') {
       await loadDocuments();
     }

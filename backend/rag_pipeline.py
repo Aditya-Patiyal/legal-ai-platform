@@ -7,6 +7,7 @@ from typing import Any, Generator
 from .embeddings import OLLAMA_HOST, query_document_chunks
 from .hybrid_retrieval import search_with_expansion, hybrid_search
 from .indian_law_kb import lookup_section, search_law_by_topic, semantic_search_laws
+from .database import fetch_one
 
 GROQ_CHAT_MODEL = "llama-3.3-70b-versatile"
 OLLAMA_CHAT_MODEL = "mistral"
@@ -44,18 +45,18 @@ def get_groq_client():
 
 
 def generate_llm_response(prompt: str) -> str:
-    """Generate a response using Groq if available, otherwise fall back to Ollama."""
+    """Generate a response using Groq."""
     groq = get_groq_client()
-    if groq:
-        response = groq.chat.completions.create(
-            model=GROQ_CHAT_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=2000,
-        )
-        return response.choices[0].message.content.strip()
-    response = get_ollama_client().generate(model=OLLAMA_CHAT_MODEL, prompt=prompt)
-    return response.get("response", "I could not generate a response.").strip()
+    if not groq:
+        raise ValueError("GROQ_API_KEY is not set. Chat requires a Groq API key.")
+    
+    response = groq.chat.completions.create(
+        model=GROQ_CHAT_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=2000,
+    )
+    return response.choices[0].message.content.strip()
 
 SYSTEM_PROMPT = """You are a legal assistant helping non-lawyers understand Indian law and legal documents.
 
@@ -454,6 +455,26 @@ def build_law_fallback_answer(
     return "\n\n".join(parts)
 
 
+def _get_extracted_text_chunks(document_id: int, max_chars: int = 8000) -> list[dict[str, Any]]:
+    """Fallback: get document text from SQLite and split into pseudo-chunks for the LLM."""
+    row = fetch_one("SELECT extracted_text, filename FROM documents WHERE id = ?", (document_id,))
+    if not row or not row["extracted_text"]:
+        return []
+    text = row["extracted_text"][:max_chars]
+    filename = row["filename"] or "document"
+    # Split into ~2000-char chunks for better context
+    chunk_size = 2000
+    chunks = []
+    for i in range(0, len(text), chunk_size):
+        chunks.append({
+            "id": f"text-{document_id}-{i}",
+            "text": text[i:i + chunk_size],
+            "metadata": {"document_id": document_id, "filename": filename, "method": "extracted_text"},
+            "distance": 0.0,
+        })
+    return chunks
+
+
 def answer_question(
     document_id: int,
     question: str,
@@ -472,6 +493,9 @@ def answer_question(
             doc_sources = search_with_expansion(document_id, question, top_k=4)
         except Exception:
             doc_sources = query_document_chunks(document_id=document_id, query=question)
+        # Fallback: if vector search returned nothing, use extracted text from DB
+        if not doc_sources:
+            doc_sources = _get_extracted_text_chunks(document_id)
     
     if query_type in ["law_only", "document_plus_law"]:
         section_lookups, semantic_law_results = get_law_context(question)
@@ -507,26 +531,22 @@ def answer_question(
 
 
 def generate_llm_response_stream(prompt: str) -> Generator[str, None, None]:
-    """Stream response tokens from Groq if available, otherwise fall back to Ollama."""
+    """Stream response tokens from Groq."""
     groq = get_groq_client()
-    if groq:
-        stream = groq.chat.completions.create(
-            model=GROQ_CHAT_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=2000,
-            stream=True,
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield delta
-        return
-    stream = get_ollama_client().generate(model=OLLAMA_CHAT_MODEL, prompt=prompt, stream=True)
+    if not groq:
+        raise ValueError("GROQ_API_KEY is not set. Chat requires a Groq API key.")
+
+    stream = groq.chat.completions.create(
+        model=GROQ_CHAT_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=2000,
+        stream=True,
+    )
     for chunk in stream:
-        token = chunk.get("response", "")
-        if token:
-            yield token
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
 
 
 def stream_answer_question(
@@ -545,6 +565,9 @@ def stream_answer_question(
             doc_sources = search_with_expansion(document_id, question, top_k=4)
         except Exception:
             doc_sources = query_document_chunks(document_id=document_id, query=question)
+        # Fallback: if vector search returned nothing, use extracted text from DB
+        if not doc_sources:
+            doc_sources = _get_extracted_text_chunks(document_id)
 
     if query_type in ["law_only", "document_plus_law"]:
         section_lookups, semantic_law_results = get_law_context(question)

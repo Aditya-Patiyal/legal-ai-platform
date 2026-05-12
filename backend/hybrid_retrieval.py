@@ -65,12 +65,26 @@ def vector_search(
 ) -> list[dict[str, Any]]:
     """Perform vector similarity search."""
     collection = get_collection()
-    results = collection.query(
-        query_embeddings=[embed_text(query)],
-        n_results=top_k,
-        where={"document_id": document_id},
-        include=["documents", "metadatas", "distances"],
-    )
+    try:
+        embedding = embed_text(query)
+        if embedding:
+            results = collection.query(
+                query_embeddings=[embedding],
+                n_results=top_k,
+                where={"document_id": document_id},
+                include=["documents", "metadatas", "distances"],
+            )
+        else:
+            # Fall back to ChromaDB's default embedding via query_texts
+            results = collection.query(
+                query_texts=[query],
+                n_results=top_k,
+                where={"document_id": document_id},
+                include=["documents", "metadatas", "distances"],
+            )
+    except Exception as e:
+        print(f"[HYBRID] Vector search failed: {e}")
+        return []
     
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
