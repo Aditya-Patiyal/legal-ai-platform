@@ -107,16 +107,24 @@ function renderMarkdown(text) {
 
 let _docPollTimer = null;
 
-async function pollDocumentReady(documentId, statusId = null, maxAttempts = 25, intervalMs = 2000) {
+async function pollDocumentReady(documentId, statusId = null, maxAttempts = 40, intervalMs = 2000) {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
-    const data = await api(`/api/documents/${documentId}`);
-    const status = data.document.upload_status;
-    if (status === 'ready') return data.document;
-    if (status === 'error') throw new Error('Document processing failed. Please try uploading again.');
-    if (statusId) {
-      const dots = '.'.repeat((i % 3) + 1);
-      showStatus(statusId, `Processing document${dots}`, 'loading');
+    try {
+      const data = await api(`/api/documents/${documentId}`);
+      const status = data.document.upload_status;
+      if (status === 'ready') return data.document;
+      if (status === 'error') throw new Error('Document processing failed. Please try uploading again.');
+      if (statusId) {
+        const dots = '.'.repeat((i % 3) + 1);
+        showStatus(statusId, `Processing document${dots}`, 'loading');
+      }
+    } catch (e) {
+      // If the document disappeared (ephemeral backend), stop polling
+      if (e.message && e.message.includes('not found')) {
+        throw new Error('Document was lost during processing. Please try uploading again.');
+      }
+      throw e;
     }
   }
   throw new Error('Document processing timed out. Please refresh and try again.');
@@ -457,16 +465,22 @@ async function handleUpload(event) {
     
     if (data.document.upload_status === 'processing') {
       showStatus(statusId, `Processing ${data.document.filename}...`, 'loading');
-      const readyDoc = await pollDocumentReady(data.document.id, statusId);
-      
-      // Update the local documents list in state with the ready document
-      const index = state.documents.findIndex(d => d.id === readyDoc.id);
-      if (index !== -1) {
-        state.documents[index] = readyDoc;
-      } else {
-        state.documents.unshift(readyDoc);
+      try {
+        const readyDoc = await pollDocumentReady(data.document.id, statusId);
+        
+        // Update the local documents list in state with the ready document
+        const index = state.documents.findIndex(d => d.id === readyDoc.id);
+        if (index !== -1) {
+          state.documents[index] = readyDoc;
+        } else {
+          state.documents.unshift(readyDoc);
+        }
+        await loadDocuments();
+      } catch (pollError) {
+        // If polling failed, refresh the documents list anyway
+        await loadDocuments();
+        throw pollError;
       }
-      await loadDocuments();
     }
     showStatus(statusId, `Successfully uploaded ${data.document.filename}`, 'success');
   } catch (error) {
@@ -785,7 +799,7 @@ async function handleLandingChat(event) {
       documentId = result.document.id;
       if (result.document.upload_status === 'processing') {
         showStatus(statusId, `Processing ${file.name}...`, 'loading');
-        await pollDocumentReady(documentId);
+        await pollDocumentReady(documentId, statusId);
       }
       // Clear file input
       if (landingFileUpload) landingFileUpload.value = '';
@@ -866,7 +880,7 @@ async function handleDashboardChat(event) {
       documentId = result.document.id;
       if (result.document.upload_status === 'processing') {
         showStatus(statusId, `Processing ${file.name}...`, 'loading');
-        await pollDocumentReady(documentId);
+        await pollDocumentReady(documentId, statusId);
       }
       // Clear file input
       if (dashboardFileUpload) dashboardFileUpload.value = '';
@@ -991,7 +1005,12 @@ async function handleChatUpload(event) {
     
     if (data.document.upload_status === 'processing') {
       showStatus(statusId, `Processing ${data.document.filename}...`, 'loading');
-      await pollDocumentReady(data.document.id, statusId);
+      try {
+        await pollDocumentReady(data.document.id, statusId);
+      } catch (pollError) {
+        showStatus(statusId, pollError.message, 'error');
+        return;
+      }
     }
     showStatus(statusId, `Ready: ${data.document.filename}`, 'success');
     setTimeout(() => hideStatus(statusId), 3000);

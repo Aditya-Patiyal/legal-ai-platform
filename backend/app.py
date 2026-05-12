@@ -251,9 +251,9 @@ def upload_document(
         "INSERT INTO documents (user_id, filename, saved_path, file_type, upload_status) VALUES (?, ?, ?, ?, ?)",
         (current_user["id"], original_filename, str(saved_path), suffix.replace(".", ""), "processing"),
     )
-    background_tasks.add_task(
-        _process_document_bg, document_id, str(saved_path), current_user["id"], original_filename
-    )
+    # Process synchronously to avoid race conditions on ephemeral deployments
+    # (background tasks can lose data if the container restarts)
+    _process_document_bg(document_id, str(saved_path), current_user["id"], original_filename)
     document = row_to_dict(fetch_one("SELECT * FROM documents WHERE id = ?", (document_id,)))
     return {"document": document}
 
