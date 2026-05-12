@@ -1,0 +1,47 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:latest
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:latest
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --port
+      - "8000"
+      - --memory
+      - "1Gi"
+      - --timeout
+      - "600"
+      - --min-instances
+      - "1"
+      - --set-env-vars
+      - GROQ_API_KEY=${_GROQ_API_KEY},SESSION_SECRET=${_SESSION_SECRET},CORS_ORIGINS=${_CORS_ORIGINS}
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:latest
+
+substitutions:
+  _REGION: asia-south1
+  _REPOSITORY: legal-ai
+  _SERVICE_NAME: legal-ai-backend
+  _GROQ_API_KEY: REPLACE_WITH_YOUR_GROQ_KEY
+  _SESSION_SECRET: REPLACE_WITH_RANDOM_SECRET
+  _CORS_ORIGINS: https://legal-ai-platform-eb7ab.web.app
